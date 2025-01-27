@@ -4,3 +4,7 @@
 [submodule "3rd/Simd"]
 	path = 3rd/Simd
 	url = https://github.com/ermig1979/Simd.git
+[submodule "3rd/oneDNN"]
+	path = 3rd/oneDNN
+	url = https://github.com/oneapi-src/oneDNN.git
+	branch = rls-v3.6
