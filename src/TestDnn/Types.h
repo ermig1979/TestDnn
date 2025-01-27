@@ -28,6 +28,7 @@
 #include "Cpl/Args.h"
 
 #include "Simd/SimdAllocator.hpp"
+#include "Simd/SimdPoint.hpp"
 
 #include <vector>
 #include <memory.h>
@@ -39,6 +40,8 @@ namespace TestDnn
 
     typedef std::vector<size_t> Shape;
     typedef std::vector<size_t> Index;
+
+    typedef Simd::Point<size_t> Size;
 
     //--------------------------------------------------------------------------------------------------
 
@@ -292,5 +295,135 @@ namespace TestDnn
         Shape _shape;
         size_t _size;
         Buffer _buffer;
+    };
+
+    //-------------------------------------------------------------------------------------------------
+
+    template<bool back> struct ConvolutionParam
+    {
+        SimdBool trans;
+        size_t batch;
+        SimdConvolutionParameters conv;
+
+        ConvolutionParam(SimdBool t, size_t n, size_t sC, size_t sH, size_t sW, size_t dC, size_t kY, size_t kX, size_t dY, size_t dX,
+            size_t sY, size_t sX, size_t pY, size_t pX, size_t pH, size_t pW, size_t g, SimdConvolutionActivationType a,
+            SimdTensorDataType sT = SimdTensorData32f, SimdTensorDataType dT = SimdTensorData32f)
+        {
+            trans = t;
+            batch = n;
+            conv.srcC = sC;
+            conv.srcH = sH;
+            conv.srcW = sW;
+            conv.srcT = sT;
+            conv.srcF = trans ? SimdTensorFormatNhwc : SimdTensorFormatNchw;
+            conv.dstC = dC;
+            conv.dstT = dT;
+            conv.dstF = trans ? SimdTensorFormatNhwc : SimdTensorFormatNchw;
+            conv.kernelY = kY;
+            conv.kernelX = kX;
+            conv.dilationY = dY;
+            conv.dilationX = dX;
+            conv.strideY = sY;
+            conv.strideX = sX;
+            conv.padY = pY;
+            conv.padX = pX;
+            conv.padH = pH;
+            conv.padW = pW;
+            conv.group = g;
+            conv.activation = a;
+            if (back)
+            {
+                conv.dstH = conv.strideY * (conv.srcH - 1) + conv.dilationY * (conv.kernelY - 1) + 1 - conv.padY - conv.padH;
+                conv.dstW = conv.strideX * (conv.srcW - 1) + conv.dilationX * (conv.kernelX - 1) + 1 - conv.padX - conv.padW;
+            }
+            else
+            {
+                conv.dstH = (conv.srcH + conv.padY + conv.padH - (conv.dilationY * (conv.kernelY - 1) + 1)) / conv.strideY + 1;
+                conv.dstW = (conv.srcW + conv.padX + conv.padW - (conv.dilationX * (conv.kernelX - 1) + 1)) / conv.strideX + 1;
+            }
+        }
+
+        ConvolutionParam(size_t n, size_t sC, size_t sH, size_t sW, size_t dC, Size k, Size d, Size s, Size b, Size e, size_t g,
+            SimdConvolutionActivationType a, ::SimdBool t, SimdTensorDataType sT = SimdTensorData32f, SimdTensorDataType dT = SimdTensorData32f)
+        {
+            trans = t;
+            batch = n;
+            conv.srcC = sC;
+            conv.srcH = sH;
+            conv.srcW = sW;
+            conv.srcT = sT;
+            conv.srcF = trans ? SimdTensorFormatNhwc : SimdTensorFormatNchw;
+            conv.dstC = dC;
+            conv.dstT = dT;
+            conv.dstF = trans ? SimdTensorFormatNhwc : SimdTensorFormatNchw;
+            conv.kernelY = k.y;
+            conv.kernelX = k.x;
+            conv.dilationY = d.y;
+            conv.dilationX = d.x;
+            conv.strideY = s.y;
+            conv.strideX = s.y;
+            conv.padY = b.y;
+            conv.padX = b.x;
+            conv.padH = e.y;
+            conv.padW = e.x;
+            conv.group = g;
+            conv.activation = a;
+            if (back)
+            {
+                conv.dstH = conv.strideY * (conv.srcH - 1) + conv.dilationY * (conv.kernelY - 1) + 1 - conv.padY - conv.padH;
+                conv.dstW = conv.strideX * (conv.srcW - 1) + conv.dilationX * (conv.kernelX - 1) + 1 - conv.padX - conv.padW;
+            }
+            else
+            {
+                conv.dstH = (conv.srcH + conv.padY + conv.padH - (conv.dilationY * (conv.kernelY - 1) + 1)) / conv.strideY + 1;
+                conv.dstW = (conv.srcW + conv.padX + conv.padW - (conv.dilationX * (conv.kernelX - 1) + 1)) / conv.strideX + 1;
+            }
+        }
+
+        String Decription(String extra = String()) const
+        {
+            std::stringstream ss;
+            ss << "[" << this->batch << "x" << conv.srcC << "x" << conv.srcH << "x" << conv.srcW;
+            ss << "-" << conv.dstC << "x" << conv.kernelY << "x" << conv.kernelX;
+            ss << "-" << std::max(conv.dilationX, conv.dilationY) << "-" << std::max(conv.strideX, conv.strideY);
+            //ss << "-" << std::max(conv.padX, conv.padW);
+            ss << "-" << conv.group << "-" << this->trans;
+            ss << extra << "]";
+            return ss.str();
+        }
+
+        Shape SrcShape() const
+        {
+            if (trans)
+                return Shape({ batch, conv.srcH, conv.srcW, conv.srcC });
+            else
+                return Shape({ batch, conv.srcC, conv.srcH, conv.srcW });
+        }
+
+        Shape DstShape() const
+        {
+            if (trans)
+                return Shape({ batch, conv.dstH, conv.dstW, conv.dstC });
+            else
+                return Shape({ batch, conv.dstC, conv.dstH, conv.dstW });
+        }
+
+        Shape WeightShape() const
+        {
+            if (back)
+            {
+                if (trans)
+                    return Shape({ conv.srcC, conv.kernelY, conv.kernelX, conv.dstC / conv.group });
+                else
+                    return Shape({ conv.srcC, conv.dstC / conv.group, conv.kernelY, conv.kernelX });
+            }
+            else
+            {
+                if (trans)
+                    return Shape({ conv.kernelY, conv.kernelX, conv.srcC / conv.group, conv.dstC });
+                else
+                    return Shape({ conv.dstC, conv.srcC / conv.group, conv.kernelY, conv.kernelX });
+            }
+        }
     };
 }
