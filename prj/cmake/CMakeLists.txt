@@ -20,6 +20,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 include_directories(${3RD_DIR}/Simd/src)
 add_subdirectory(${3RD_DIR}/Simd/prj/cmake Simd)
 
+include_directories(${3RD_DIR}/oneDNN/include)
+add_subdirectory(${3RD_DIR}/oneDNN oneDNN)
+
 file(GLOB_RECURSE TEST_DNN_SRC ${ROOT_DIR}/src/TestDnn/*.cpp)
 add_executable(TestDnn ${TEST_DNN_SRC})
-target_link_libraries(TestDnn Simd -lpthread)
+target_link_libraries(TestDnn Simd dnnl -lpthread)

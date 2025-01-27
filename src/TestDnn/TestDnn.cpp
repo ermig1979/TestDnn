@@ -22,16 +22,12 @@
 * SOFTWARE.
 */
 
-#include "Cpl/Log.h"
-#include "Cpl/Args.h"
+#include "Types.h"
 
 #include "Simd/SimdLib.h"
 
 namespace TestDnn
 {
-    typedef Cpl::String String;
-    typedef Cpl::Strings Strings;
-
     struct Options : public Cpl::ArgsParser
     {
         bool help;
