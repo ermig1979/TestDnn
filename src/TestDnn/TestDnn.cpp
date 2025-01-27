@@ -25,6 +25,8 @@
 #include "Cpl/Log.h"
 #include "Cpl/Args.h"
 
+#include "Simd/SimdLib.h"
+
 namespace TestDnn
 {
     typedef Cpl::String String;
