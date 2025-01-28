@@ -8,7 +8,7 @@ if [ ! -d $BUILD_DIR ]; then mkdir $BUILD_DIR; fi
 
 cd $BUILD_DIR
 
-cmake ../prj/cmake -DTOOLCHAIN="/usr/bin/c++" -DCMAKE_BUILD_TYPE=Release
+cmake ../prj/cmake -DTOOLCHAIN="/usr/bin/c++" -DCMAKE_BUILD_TYPE=Release -DSIMD_INFO=OFF
 if [ $? -ne 0 ] ; then 	exit; fi
 
 if [ ${HT} == "1" ]; then make "-j$(nproc)"; else make "-j$(grep "^core id" /proc/cpuinfo | sort -u | wc -l)"; fi
