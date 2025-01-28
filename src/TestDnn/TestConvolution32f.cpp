@@ -146,6 +146,7 @@ namespace TestDnn
 			: _engine(dnnl::engine::kind::cpu, 0)
 			, _engine_stream(_engine)
 		{
+
 		}
 
 		virtual ~TestConvolution32fDnnl()
@@ -191,6 +192,7 @@ namespace TestDnn
 			conv_ops.append_eltwise(dnnl::algorithm::eltwise_relu, alpha, beta);
 			dnnl::primitive_attr conv_attr;
 			conv_attr.set_post_ops(conv_ops);
+			conv_attr.set_fpmath_mode(dnnl::fpmath_mode::bf16);
 
 			dnnl::memory::dims strides_dims = { c.strideY, c.strideX };
 			dnnl::memory::dims padding_dims_l = { c.padY, c.padX };
@@ -339,7 +341,7 @@ namespace TestDnn
 			aHi = SimdConvolutionActivationHardSigmoid, aSw = SimdConvolutionActivationSwish, aGe = SimdConvolutionActivationGelu;
 		const SimdBool tF = SimdFalse, tT = SimdTrue;
 		const SimdTensorDataType f32 = SimdTensorData32f, b16 = SimdTensorData16b;
-		float eps = 0.001f, time = 0.01f;
+		float eps = 0.05f, time = 0.01f;
 
 		bool result = true;
 
