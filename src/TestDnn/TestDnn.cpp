@@ -133,6 +133,9 @@ int main(int argc, char* argv[])
     for (const TestDnn::Group& group : TestDnn::g_groups)
         if (options.Required(group))
             groups.push_back(group);
+		
+	//::setenv("OMP_NUM_THREADS", "1", 1);
+	//::setenv("OMP_WAIT_POLICY", "PASSIVE", 1);
 
     if (groups.empty())
     {

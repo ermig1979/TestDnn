@@ -31,7 +31,7 @@
 #include <string>
 #include <vector>
 
-//#include "example_utils.hpp"
+#include "../examples/example_utils.hpp"
 #include "oneapi/dnnl/dnnl.hpp"
 
 namespace TestDnn
@@ -80,9 +80,13 @@ namespace TestDnn
 			if (!_context)
 				return false;
 
-			_buf.Reshape(SimdTensorData32f, Shp(SimdSynetConvolution32fExternalBufferSize(_context)));
-			
 			SimdSynetConvolution32fSetParams(_context, weight.Data<float>(), NULL, bias.Data<float>(), params.Data<float>());
+
+			_src.Reshape(SimdTensorData32f, param.SrcShape());
+
+			_buf.Reshape(SimdTensorData32f, Shp(SimdSynetConvolution32fExternalBufferSize(_context)));
+
+			_dst.Reshape(SimdTensorData32f, param.DstShape());
 
 			return true;
 		}
@@ -109,7 +113,156 @@ namespace TestDnn
 
 	//----------------------------------------------------------------------------------------------------
 
-	bool Convolution32fTest(float eps, const ConvParam& p, TestConvolution32f &f1, TestConvolution32f &f2)
+	class TestConvolution32fDnnl : public TestConvolution32f
+	{
+		using tag = dnnl::memory::format_tag;
+		using dt = dnnl::memory::data_type;
+
+		dnnl::engine _engine;
+		dnnl::stream _engine_stream;
+
+		dnnl::convolution_forward::primitive_desc _convPd;
+		dnnl::convolution_forward _convPrim;
+		std::unordered_map<int, dnnl::memory> _convArgs;
+
+		dnnl::memory::format_tag _formatS, _formatW;
+		dnnl::memory::dims _srcDims, _dstDims, _weightDims, _biasDims;
+
+		dnnl::memory _userSrcMem, _userWeightMem, _userBiasMem, _userDstMem;
+		dnnl::memory::desc _srcMd, _weightMd, _userBiasMd, _dstMd;
+		dnnl::memory _convSrcMem, _convWeightMem, _convDstMem;
+
+		dnnl::memory::dims ToDims(const Shape& shape) const
+		{
+			dnnl::memory::dims dims(shape.size());
+			for (size_t i = 0; i < shape.size(); ++i)
+				dims[i] = shape[i];
+			return dims;
+		}
+
+	public:
+		TestConvolution32fDnnl()
+			: _engine(dnnl::engine::kind::cpu, 0)
+			, _engine_stream(_engine)
+		{
+		}
+
+		virtual ~TestConvolution32fDnnl()
+		{
+
+		}
+
+		virtual String Name() const
+		{
+			return "Dnnl";
+		}
+
+		virtual bool Init(const ConvParam& p, const Tensor& weight, const Tensor& bias, const Tensor& params)
+		{
+			const SimdConvolutionParameters& c = p.conv;
+
+			_formatS = c.srcF == SimdTensorFormatNhwc ? tag::nhwc : tag::nchw;
+			_formatW = c.srcF == SimdTensorFormatNhwc ? tag::hwio : tag::oihw;
+
+			_srcDims = ToDims(Shp(p.batch, c.srcC, c.srcH, c.srcW));
+			_weightDims = ToDims(Shp(c.dstC, c.srcC, c.kernelY, c.kernelX));
+			_biasDims = ToDims(Shp(c.dstC));
+			_dstDims = ToDims(Shp(p.batch, c.dstC, c.dstH, c.dstW));
+
+			_userSrcMem = dnnl::memory({ _srcDims, dt::f32, _formatS }, _engine);
+			_userWeightMem = dnnl::memory({ _weightDims, dt::f32, _formatW }, _engine);
+			_userDstMem = dnnl::memory({ _dstDims, dt::f32, _formatS }, _engine);
+
+			_srcMd = dnnl::memory::desc(_srcDims, dt::f32, tag::any);
+			_weightMd = dnnl::memory::desc(_weightDims, dt::f32, tag::any);
+			_dstMd = dnnl::memory::desc(_dstDims, dt::f32, tag::any);
+
+			_userBiasMd = dnnl::memory::desc(_biasDims, dt::f32, tag::a);
+			_userBiasMem = dnnl::memory(_userBiasMd, _engine);
+
+			write_to_dnnl_memory((void*)weight.RawData(), _userWeightMem);
+			write_to_dnnl_memory((void*)bias.RawData(), _userBiasMem);
+
+			// Create primitive post-ops (ReLU).
+			const float alpha = 0.f;
+			const float beta = 0.f;
+			dnnl::post_ops conv_ops;
+			conv_ops.append_eltwise(dnnl::algorithm::eltwise_relu, alpha, beta);
+			dnnl::primitive_attr conv_attr;
+			conv_attr.set_post_ops(conv_ops);
+
+			dnnl::memory::dims strides_dims = { c.strideY, c.strideX };
+			dnnl::memory::dims padding_dims_l = { c.padY, c.padX };
+			dnnl::memory::dims padding_dims_r = { c.padH, c.padW };
+
+			_convPd = dnnl::convolution_forward::primitive_desc(_engine,
+				dnnl::prop_kind::forward_training, dnnl::algorithm::convolution_direct,
+				_srcMd, _weightMd, _userBiasMd, _dstMd,
+				strides_dims, padding_dims_l, padding_dims_r, conv_attr);
+
+			_convSrcMem = _userSrcMem;
+			if (_convPd.src_desc() != _userSrcMem.get_desc())
+				_convSrcMem = dnnl::memory(_convPd.src_desc(), _engine);
+
+			_convWeightMem = _userWeightMem;
+			if (_convPd.weights_desc() != _userWeightMem.get_desc())
+			{
+				_convWeightMem = dnnl::memory(_convPd.weights_desc(), _engine);
+				dnnl::reorder(_userWeightMem, _convWeightMem).execute(_engine_stream, _userWeightMem, _convWeightMem);
+				_engine_stream.wait();
+			}
+
+			_convDstMem = _userDstMem;
+			if (_convPd.dst_desc() != _userDstMem.get_desc()) 
+				_convDstMem = dnnl::memory(_convPd.dst_desc(), _engine);
+
+			_convPrim = dnnl::convolution_forward(_convPd);
+
+			_convArgs.insert({ DNNL_ARG_SRC, _convSrcMem });
+			_convArgs.insert({ DNNL_ARG_WEIGHTS, _convWeightMem });
+			_convArgs.insert({ DNNL_ARG_BIAS, _userBiasMem });
+			_convArgs.insert({ DNNL_ARG_DST, _convDstMem });
+
+			return true;
+		}
+
+		virtual bool SetSrc(const Tensor& src)
+		{
+			write_to_dnnl_memory((void*)src.Data<float>(), _userSrcMem);
+			if (_convPd.src_desc() != _userSrcMem.get_desc())
+			{
+				dnnl::reorder(_userSrcMem, _convSrcMem).execute(_engine_stream, _userSrcMem, _convSrcMem);
+				_engine_stream.wait();
+			}
+			return true;
+		}
+
+		virtual bool Run()
+		{
+			_convPrim.execute(_engine_stream, _convArgs);
+			
+			_engine_stream.wait();
+
+			return true;
+		}
+
+		virtual bool GetDst(Tensor& dst)
+		{
+			if (_convPd.dst_desc() != _userDstMem.get_desc())
+				dnnl::reorder(_convDstMem, _userDstMem).execute(_engine_stream, _convDstMem, _userDstMem);
+			else
+				_userDstMem = _convDstMem;
+			_engine_stream.wait();
+
+			read_from_dnnl_memory(dst.Data<float>(), _userDstMem);
+			return true;
+		}
+	};
+
+
+	//----------------------------------------------------------------------------------------------------
+
+	bool Convolution32fTest(float eps, float time, const ConvParam& p, TestConvolution32f &f1, TestConvolution32f &f2)
 	{
 		CPL_LOG_SS(Info, "Test " << f1.Name() << " & " << f2.Name() << " for " << p.Description() << ": ");
 
@@ -156,9 +309,16 @@ namespace TestDnn
 		f1.SetSrc(src);
 		f2.SetSrc(src);
 
+		for(double start = Cpl::Time(); Cpl::Time() < start + time;)
 		{
-			CPL_PERF_BEGF(f1.Name() + p.Description(), p.Flop());
-			//f1.Run();
+			CPL_PERF_BEGF(p.Description() + " " + f1.Name(), p.Flop());
+  			f1.Run();
+		}
+
+		for (double start = Cpl::Time(); Cpl::Time() < start + time;)
+		{
+			CPL_PERF_BEGF(p.Description() + " " + f2.Name(), p.Flop());
+			f2.Run();
 		}
 
 		f1.GetDst(dst1);
@@ -176,14 +336,14 @@ namespace TestDnn
 			aHi = SimdConvolutionActivationHardSigmoid, aSw = SimdConvolutionActivationSwish, aGe = SimdConvolutionActivationGelu;
 		const SimdBool tF = SimdFalse, tT = SimdTrue;
 		const SimdTensorDataType f32 = SimdTensorData32f, b16 = SimdTensorData16b;
-		float eps = 0.001f;
+		float eps = 0.001f, time = 1.0f;
 
 		bool result = true;
 
 		Cpl::PerformanceStorage::Global().Clear();
 
-		result = result && Convolution32fTest(eps, ConvParam(1, 128, 12, 12, 128, _1, _1, _1, _0, _0, 1, aRe, tT), TestConvolution32fSimd().Ref(), TestConvolution32fSimd().Ref());
-		result = result && Convolution32fTest(eps, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tT), TestConvolution32fSimd().Ref(), TestConvolution32fSimd().Ref());
+		result = result && Convolution32fTest(eps, time, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tF), TestConvolution32fSimd().Ref(), TestConvolution32fDnnl().Ref());
+		result = result && Convolution32fTest(eps, time, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tT), TestConvolution32fSimd().Ref(), TestConvolution32fDnnl().Ref());
 
 		CPL_LOG_SS(Info, std::endl << Cpl::PerformanceStorage::Global().Report());
 

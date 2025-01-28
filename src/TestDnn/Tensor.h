@@ -240,6 +240,20 @@ namespace TestDnn
             memset(_buffer.data(), 0, _buffer.size());
         }
 
+        String Info() const
+        {
+            const char* tts[] = { "?", "f", "i", "u", "u", "l", "l", "~", "b", "h" };
+            std::stringstream ss;
+            ss << tts[int(_type) + 1] << "-";
+            for (size_t i = 0; i < _shape.size(); ++i)
+            {
+                if (i)
+                    ss << "x";
+                ss << _shape[i];
+            }
+            return ss.str();
+        }
+
     private:
         Type _type;
         Format _format;
