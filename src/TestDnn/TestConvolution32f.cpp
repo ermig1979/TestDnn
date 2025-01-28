@@ -24,6 +24,7 @@
 
 #include "Tensor.h"
 #include "ConvParam.h"
+#include "Options.h"
 
 #include <algorithm>
 #include <cmath>
@@ -196,7 +197,7 @@ namespace TestDnn
 			dnnl::memory::dims padding_dims_r = { c.padH, c.padW };
 
 			_convPd = dnnl::convolution_forward::primitive_desc(_engine,
-				dnnl::prop_kind::forward_training, dnnl::algorithm::convolution_direct,
+				dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct,
 				_srcMd, _weightMd, _userBiasMd, _dstMd,
 				strides_dims, padding_dims_l, padding_dims_r, conv_attr);
 
@@ -249,10 +250,12 @@ namespace TestDnn
 		virtual bool GetDst(Tensor& dst)
 		{
 			if (_convPd.dst_desc() != _userDstMem.get_desc())
+			{
 				dnnl::reorder(_convDstMem, _userDstMem).execute(_engine_stream, _convDstMem, _userDstMem);
+				_engine_stream.wait();
+			}
 			else
 				_userDstMem = _convDstMem;
-			_engine_stream.wait();
 
 			read_from_dnnl_memory(dst.Data<float>(), _userDstMem);
 			return true;
@@ -262,7 +265,7 @@ namespace TestDnn
 
 	//----------------------------------------------------------------------------------------------------
 
-	bool Convolution32fTest(float eps, float time, const ConvParam& p, TestConvolution32f &f1, TestConvolution32f &f2)
+	bool Convolution32fTest(const Options& options, float eps, const ConvParam& p, TestConvolution32f &f1, TestConvolution32f &f2)
 	{
 		CPL_LOG_SS(Info, "Test " << f1.Name() << " & " << f2.Name() << " for " << p.Description() << ": ");
 
@@ -309,13 +312,13 @@ namespace TestDnn
 		f1.SetSrc(src);
 		f2.SetSrc(src);
 
-		for(double start = Cpl::Time(); Cpl::Time() < start + time;)
+		for(double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
 			CPL_PERF_BEGF(p.Description() + " " + f1.Name(), p.Flop());
   			f1.Run();
 		}
 
-		for (double start = Cpl::Time(); Cpl::Time() < start + time;)
+		for (double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
 			CPL_PERF_BEGF(p.Description() + " " + f2.Name(), p.Flop());
 			f2.Run();
@@ -327,7 +330,7 @@ namespace TestDnn
 		return Compare32f(dst1, dst2, eps, true, 64);
 	}
 
-	bool Convolution32fTest()
+	bool Convolution32fTest(const Options& options)
 	{
 		Size _0(0, 0), _1(1, 1), _2(2, 2), _3(3, 3), _4(4, 4), _5(5, 5), _6(6, 6), _7(7, 7);
 		const SimdConvolutionActivationType aId = SimdConvolutionActivationIdentity, aRe = SimdConvolutionActivationRelu,
@@ -336,14 +339,14 @@ namespace TestDnn
 			aHi = SimdConvolutionActivationHardSigmoid, aSw = SimdConvolutionActivationSwish, aGe = SimdConvolutionActivationGelu;
 		const SimdBool tF = SimdFalse, tT = SimdTrue;
 		const SimdTensorDataType f32 = SimdTensorData32f, b16 = SimdTensorData16b;
-		float eps = 0.001f, time = 1.0f;
+		float eps = 0.001f, time = 0.01f;
 
 		bool result = true;
 
 		Cpl::PerformanceStorage::Global().Clear();
 
-		result = result && Convolution32fTest(eps, time, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tF), TestConvolution32fSimd().Ref(), TestConvolution32fDnnl().Ref());
-		result = result && Convolution32fTest(eps, time, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tT), TestConvolution32fSimd().Ref(), TestConvolution32fDnnl().Ref());
+		result = result && Convolution32fTest(options, eps, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tF), TestConvolution32fSimd().Ref(), TestConvolution32fDnnl().Ref());
+		result = result && Convolution32fTest(options, eps, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tT), TestConvolution32fSimd().Ref(), TestConvolution32fDnnl().Ref());
 
 		CPL_LOG_SS(Info, std::endl << Cpl::PerformanceStorage::Global().Report());
 

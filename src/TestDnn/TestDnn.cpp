@@ -23,12 +23,11 @@
 */
 
 #include "Types.h"
-
-#include "Simd/SimdLib.h"
+#include "Options.h"
 
 namespace TestDnn
 {
-    typedef bool(*TestPtr)();
+    typedef bool(*TestPtr)(const Options & options);
 
     struct Group
     {
@@ -45,7 +44,7 @@ namespace TestDnn
     Groups g_groups;
 
 #define TEST_ADD(name) \
-    bool name##Test(); \
+    bool name##Test(const Options & options); \
     bool name##AddToList(){ g_groups.push_back(Group(#name, name##Test)); return true; } \
     bool name##AtList = name##AddToList();
 
@@ -53,46 +52,16 @@ namespace TestDnn
 
     //-------------------------------------------------------------------------------------------------
 
-    struct Options : public Cpl::ArgsParser
+    bool Required(const Group& group, const Options& options)
     {
-        bool help;
-        Cpl::Log::Level logLevel;
-        String logFile;
-        Strings include, exclude;
-
-        Options(int argc, char* argv[])
-            : Cpl::ArgsParser(argc, argv, true)
-        {
-            help = HasArg("-h", "-?");
-            logLevel = (Cpl::Log::Level)Cpl::ToVal<int>(GetArg2("-ll", "--logLevel", "4", false));
-            logFile = GetArg2("-lf", "--logFile", "", false);
-            include = GetArgs("-i", Strings(), false);
-            exclude = GetArgs("-e", Strings(), false);
-        }
-
-        bool Required(const Group& group)
-        {
-            bool required = include.empty();
-            for (size_t i = 0; i < include.size() && !required; ++i)
-                if (group.name.find(include[i]) != std::string::npos)
-                    required = true;
-            for (size_t i = 0; i < exclude.size() && required; ++i)
-                if (group.name.find(exclude[i]) != std::string::npos)
-                    required = false;
-            return required;
-        }
-    };
-
-    int PrintHelp()
-    {
-        std::cout << "Test DNN Project." << std::endl << std::endl;
-        std::cout << "Test application parameters:" << std::endl << std::endl;
-        std::cout << " -i=test      - include test filter." << std::endl << std::endl;
-        std::cout << " -e=test      - exclude test filter." << std::endl << std::endl;
-        std::cout << " -ll=1        - a log level." << std::endl << std::endl;
-        std::cout << " -lf=test.log - a log file name." << std::endl << std::endl;
-        std::cout << " -h or -?     - to print this help message." << std::endl << std::endl;
-        return 0;
+        bool required = options.include.empty();
+        for (size_t i = 0; i < options.include.size() && !required; ++i)
+            if (group.name.find(options.include[i]) != std::string::npos)
+                required = true;
+        for (size_t i = 0; i < options.exclude.size() && required; ++i)
+            if (group.name.find(options.exclude[i]) != std::string::npos)
+                required = false;
+        return required;
     }
 
     int MakeTests(const Groups& groups, const Options& options)
@@ -101,7 +70,7 @@ namespace TestDnn
         {
             const Group& group = groups[t];
             CPL_LOG_SS(Info, group.name << "Test is started :");
-            bool result = group.test();
+            bool result = group.test(options);
             if (result)
             {
                 CPL_LOG_SS(Info, group.name << "Test is OK." << std::endl);
@@ -122,7 +91,7 @@ int main(int argc, char* argv[])
     TestDnn::Options options(argc, argv);
 
     if (options.help)
-        return TestDnn::PrintHelp();
+        return options.PrintHelp();
 
     Cpl::Log::Global().AddStdWriter(options.logLevel);
     if (!options.logFile.empty())
@@ -131,7 +100,7 @@ int main(int argc, char* argv[])
 
     TestDnn::Groups groups;
     for (const TestDnn::Group& group : TestDnn::g_groups)
-        if (options.Required(group))
+        if (TestDnn::Required(group, options))
             groups.push_back(group);
 		
 	//::setenv("OMP_NUM_THREADS", "1", 1);

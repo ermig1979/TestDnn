@@ -92,4 +92,8 @@ namespace TestDnn
     {
         return float(::rand() & INT16_MAX) / float(INT16_MAX);
     }
+
+    //--------------------------------------------------------------------------------------------------
+
+    extern float TEST_TIME;
 }
