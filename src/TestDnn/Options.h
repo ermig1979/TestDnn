@@ -26,7 +26,7 @@
 
 #include "Types.h"
 
-namespace TestDnn
+namespace td
 {
     struct Options : public Cpl::ArgsParser
     {
@@ -34,7 +34,7 @@ namespace TestDnn
         Cpl::Log::Level logLevel;
         String logFile;
         Strings include, exclude;
-        float testTime;
+        float testTime, compareThreshold;
 
         Options(int argc, char* argv[])
             : Cpl::ArgsParser(argc, argv, true)
@@ -44,7 +44,8 @@ namespace TestDnn
             logFile = GetArg2("-lf", "--logFile", "", false);
             include = GetArgs("-i", Strings(), false);
             exclude = GetArgs("-e", Strings(), false);
-            testTime = Cpl::ToVal<float>(GetArg2("-tt", "--testTime", "0.01", false));
+            testTime = Cpl::ToVal<float>(GetArg2("-tt", "--testTime", "0.1", false));
+            compareThreshold = Cpl::ToVal<float>(GetArg2("-ct", "--compareThreshold", "0.001", false));
         }
 
         int PrintHelp()
@@ -56,7 +57,8 @@ namespace TestDnn
             std::cout << " -ll=1        - a log level." << std::endl << std::endl;
             std::cout << " -lf=test.log - a log file name." << std::endl << std::endl;
             std::cout << " -h or -?     - to print this help message." << std::endl << std::endl;
-            std::cout << " -tt=1.0      - a test time in seconds." << std::endl << std::endl;
+            std::cout << " -tt=0.1      - a test time in seconds." << std::endl << std::endl;
+            std::cout << " -ct=0.001    - a frameworks output compare threshold." << std::endl << std::endl;
             return 0;
         }
     };

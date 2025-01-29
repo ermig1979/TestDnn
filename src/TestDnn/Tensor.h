@@ -26,7 +26,7 @@
 
 #include "Types.h"
 
-namespace TestDnn
+namespace td
 {
     class Tensor
     {
@@ -154,7 +154,7 @@ namespace TestDnn
             return _size;
         }
 
-        SIMD_INLINE size_t Offset(const TestDnn::Index& index) const
+        SIMD_INLINE size_t Offset(const td::Index& index) const
         {
             assert(_shape.size() == index.size());
 
@@ -196,12 +196,12 @@ namespace TestDnn
             return (U*)_buffer.data();
         }
 
-        template<class U> SIMD_INLINE U* Data(const TestDnn::Index& index)
+        template<class U> SIMD_INLINE U* Data(const td::Index& index)
         {
             return Data<U>() + Offset(index);
         }
 
-        template<class U> SIMD_INLINE const U* Data(const TestDnn::Index& index) const
+        template<class U> SIMD_INLINE const U* Data(const td::Index& index) const
         {
             return Data<U>() + Offset(index);
         }

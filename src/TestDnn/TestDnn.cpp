@@ -1,5 +1,5 @@
 /*
-* Test DNN Project (http://github.com/ermig1979/TestDnn).
+* Test DNN Project (http://github.com/ermig1979/td).
 *
 * Copyright (c) 2025-2025 Yermalayeu Ihar.
 *
@@ -25,7 +25,7 @@
 #include "Types.h"
 #include "Options.h"
 
-namespace TestDnn
+namespace td
 {
     typedef bool(*TestPtr)(const Options & options);
 
@@ -88,7 +88,7 @@ namespace TestDnn
 
 int main(int argc, char* argv[])
 {
-    TestDnn::Options options(argc, argv);
+    td::Options options(argc, argv);
 
     if (options.help)
         return options.PrintHelp();
@@ -98,14 +98,15 @@ int main(int argc, char* argv[])
         Cpl::Log::Global().AddFileWriter(options.logLevel, options.logFile);
     Cpl::Log::Global().SetFlags(Cpl::Log::BashFlags);
 
-    TestDnn::Groups groups;
-    for (const TestDnn::Group& group : TestDnn::g_groups)
-        if (TestDnn::Required(group, options))
-            groups.push_back(group);
-		
 	//::setenv("OMP_NUM_THREADS", "1", 1);
 	//::setenv("OMP_WAIT_POLICY", "PASSIVE", 1);
+    //::setenv("DNNL_VERBOSE", "1", 1);
 
+    td::Groups groups;
+    for (const td::Group& group : td::g_groups)
+        if (td::Required(group, options))
+            groups.push_back(group);
+		
     if (groups.empty())
     {
         std::stringstream ss;
@@ -122,5 +123,5 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    return TestDnn::MakeTests(groups, options);
+    return td::MakeTests(groups, options);
 }

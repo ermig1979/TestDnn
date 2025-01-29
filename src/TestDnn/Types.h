@@ -34,7 +34,7 @@
 #include <vector>
 #include <memory.h>
 
-namespace TestDnn
+namespace td
 {
     typedef Cpl::String String;
     typedef Cpl::Strings Strings;
@@ -43,6 +43,8 @@ namespace TestDnn
     typedef std::vector<size_t> Index;
 
     typedef Simd::Point<size_t> Size;
+
+    typedef std::vector<int64_t> Dims;
 
     //--------------------------------------------------------------------------------------------------
 
@@ -78,22 +80,50 @@ namespace TestDnn
 
     //--------------------------------------------------------------------------------------------------
 
-    SIMD_INLINE int Rand()
+    CPL_INLINE Dims Dms()
     {
-        return ::rand();
+        return Dims();
     }
 
-    SIMD_INLINE void Srand(unsigned int seed)
+    CPL_INLINE Dims Dms(int64_t axis0)
     {
-        ::srand(seed);
+        return Dims({ axis0 });
     }
 
-    SIMD_INLINE float Random()
+    CPL_INLINE Dims Dms(int64_t axis0, int64_t axis1)
     {
-        return float(::rand() & INT16_MAX) / float(INT16_MAX);
+        return Dims({ axis0, axis1 });
+    }
+
+    CPL_INLINE Dims Dms(int64_t axis0, int64_t axis1, int64_t axis2)
+    {
+        return Dims({ axis0, axis1, axis2 });
+    }
+
+    CPL_INLINE Dims Dms(int64_t axis0, int64_t axis1, int64_t axis2, int64_t axis3)
+    {
+        return Dims({ axis0, axis1, axis2, axis3 });
+    }
+
+    CPL_INLINE Dims Dms(int64_t axis0, int64_t axis1, int64_t axis2, int64_t axis3, int64_t axis4)
+    {
+        return Dims({ axis0, axis1, axis2, axis3, axis4 });
     }
 
     //--------------------------------------------------------------------------------------------------
 
-    extern float TEST_TIME;
+    CPL_INLINE int Rand()
+    {
+        return ::rand();
+    }
+
+    CPL_INLINE void Srand(unsigned int seed)
+    {
+        ::srand(seed);
+    }
+
+    CPL_INLINE float Random()
+    {
+        return float(Rand() & INT16_MAX) / float(INT16_MAX);
+    }
 }

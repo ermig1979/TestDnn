@@ -26,7 +26,7 @@
 
 #include "Types.h"
 
-namespace TestDnn
+namespace td
 {
     template<bool back> struct ConvolutionParam
     {
