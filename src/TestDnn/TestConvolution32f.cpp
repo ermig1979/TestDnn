@@ -25,15 +25,7 @@
 #include "Tensor.h"
 #include "ConvParam.h"
 #include "Options.h"
-
-#include <algorithm>
-#include <cmath>
-#include <iostream>
-#include <string>
-#include <vector>
-
-#include "../examples/example_utils.hpp"
-#include "oneapi/dnnl/dnnl.hpp"
+#include "Dnnl.h"
 
 namespace td
 {
@@ -127,7 +119,7 @@ namespace td
 		std::unordered_map<int, dnnl::memory> _convArgs;
 
 		dnnl::memory::format_tag _formatS, _formatW;
-		Dims _srcDims, _dstDims, _weightDims, _biasDims;
+		Dims _srcDims, _dstDims, _weightDims, _biasDims, _stride, _padL, _padR;
 
 		dnnl::memory _userSrcMem, _userWeightMem, _userBiasMem, _userDstMem;
 		dnnl::memory::desc _srcMd, _weightMd, _userBiasMd, _dstMd;
@@ -173,8 +165,8 @@ namespace td
 			_userBiasMd = dnnl::memory::desc(_biasDims, dt::f32, tag::a);
 			_userBiasMem = dnnl::memory(_userBiasMd, _engine);
 
-			write_to_dnnl_memory((void*)weight.RawData(), _userWeightMem);
-			write_to_dnnl_memory((void*)bias.RawData(), _userBiasMem);
+			Copy(weight, _userWeightMem);
+			Copy(bias, _userBiasMem);
 
 			// Create primitive post-ops (ReLU).
 			const float alpha = 0.f;
@@ -185,14 +177,13 @@ namespace td
 			conv_attr.set_post_ops(conv_ops);
 			conv_attr.set_fpmath_mode(dnnl::fpmath_mode::bf16);
 
-			Dims strides_dims = Dms(c.strideY, c.strideX);
-			Dims padding_dims_l = Dms(c.padY, c.padX);
-			Dims padding_dims_r = Dms(c.padH, c.padW);
+			_stride = Dms(c.strideY, c.strideX);
+			_padL = Dms(c.padY, c.padX);
+			_padR = Dms(c.padH, c.padW);
 
 			_convPd = dnnl::convolution_forward::primitive_desc(_engine,
 				dnnl::prop_kind::forward_inference, dnnl::algorithm::convolution_direct,
-				_srcMd, _weightMd, _userBiasMd, _dstMd,
-				strides_dims, padding_dims_l, padding_dims_r, conv_attr);
+				_srcMd, _weightMd, _userBiasMd, _dstMd, _stride, _padL, _padR, conv_attr);
 
 			_convSrcMem = _userSrcMem;
 			if (_convPd.src_desc() != _userSrcMem.get_desc())
@@ -222,7 +213,7 @@ namespace td
 
 		virtual bool SetSrc(const Tensor& src)
 		{
-			write_to_dnnl_memory((void*)src.Data<float>(), _userSrcMem);
+			Copy(src, _userSrcMem);
 			if (_convPd.src_desc() != _userSrcMem.get_desc())
 			{
 				dnnl::reorder(_userSrcMem, _convSrcMem).execute(_engineStream, _userSrcMem, _convSrcMem);
@@ -249,8 +240,7 @@ namespace td
 			}
 			else
 				_userDstMem = _convDstMem;
-
-			read_from_dnnl_memory(dst.Data<float>(), _userDstMem);
+			Copy(_userDstMem, dst);
 			return true;
 		}
 	};
