@@ -1,2 +1,2 @@
 # TestDnn
-Testing of DNN backend.
+Testing of DNN backends: Simd, oneDNN.

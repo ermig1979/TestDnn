@@ -49,6 +49,7 @@ namespace td
     bool name##AtList = name##AddToList();
 
     TEST_ADD(Convolution32f);
+    TEST_ADD(Convolution16b);
 
     //-------------------------------------------------------------------------------------------------
 

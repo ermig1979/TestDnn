@@ -58,4 +58,14 @@ namespace td
             throw std::runtime_error("Copy: check input!");
         memcpy(dst.RawData(), src.get_data_handle(), src.get_desc().get_size());
     }
+
+    inline void ToBf16(const Tensor& src, dnnl::memory& dst)
+    {
+        SimdFloat32ToBFloat16(src.Data<float>(), src.Size(), (uint16_t*)dst.get_data_handle());
+    }
+
+    inline void ToFp32(const dnnl::memory& src, Tensor& dst)
+    {
+        SimdBFloat16ToFloat32((uint16_t*)src.get_data_handle(), dst.Size(), dst.Data<float>());
+    }
 }

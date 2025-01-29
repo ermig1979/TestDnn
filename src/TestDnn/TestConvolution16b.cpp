@@ -29,31 +29,31 @@
 
 namespace td
 {
-	class Convolution32f
+	class Convolution16b
 	{
 	public:
-		virtual ~Convolution32f() {};
+		virtual ~Convolution16b() {};
 		virtual String Name() const = 0;
 		virtual bool Init(const ConvParam & param, const Tensor& weigth, const Tensor& bias, const Tensor& params) = 0;
 		virtual bool SetSrc(const Tensor& src) = 0;
 		virtual bool Run() = 0;
 		virtual bool GetDst(Tensor& dst) = 0;
-		Convolution32f& Ref() { return *this; }
+		Convolution16b& Ref() { return *this; }
 	};
 
 	//----------------------------------------------------------------------------------------------------
 
-	class Convolution32fSimd : public Convolution32f
+	class Convolution16bSimd : public Convolution16b
 	{
 		void* _context;
 		Tensor _buf, _src, _dst;
 	public:
-		Convolution32fSimd()
+		Convolution16bSimd()
 			: _context(nullptr)
 		{
 		}
 
-		virtual ~Convolution32fSimd()
+		virtual ~Convolution16bSimd()
 		{
 			if (_context)
 			{
@@ -69,31 +69,29 @@ namespace td
 
 		virtual bool Init(const ConvParam& param, const Tensor& weight, const Tensor& bias, const Tensor& params)
 		{
-			_context = SimdSynetConvolution32fInit(param.batch, &param.conv);
+			_context = SimdSynetConvolution16bInit(param.batch, &param.conv, SimdSynetCompatibilityDefault);
 			if (!_context)
 				return false;
 
-			SimdSynetConvolution32fSetParams(_context, weight.Data<float>(), NULL, bias.Data<float>(), params.Data<float>());
+			SimdSynetConvolution16bSetParams(_context, weight.Data<float>(), bias.Data<float>(), params.Data<float>());
 
-			_src.Reshape(SimdTensorData32f, param.SrcShape());
+			_buf.Reshape(SimdTensorData8u, Shp(SimdSynetConvolution16bExternalBufferSize(_context)));
 
-			_buf.Reshape(SimdTensorData32f, Shp(SimdSynetConvolution32fExternalBufferSize(_context)));
-
-			_dst.Reshape(SimdTensorData32f, param.DstShape());
+			_dst.Reshape(param.conv.dstT, param.DstShape());
 
 			return true;
 		}
 
 		virtual bool SetSrc(const Tensor& src)
 		{
-			_src.Clone(src);
+			_src.Share(src);
 			return true;
 		}
 
 		virtual bool Run()
 		{
 			if(_context)
-				SimdSynetConvolution32fForward(_context, _src.Data<float>(), _buf.Data<float>(), _dst.Data<float>());
+				SimdSynetConvolution16bForward(_context, _src.RawData(), _buf.RawData(), _dst.RawData());
 			return true;
 		}
 
@@ -106,7 +104,7 @@ namespace td
 
 	//----------------------------------------------------------------------------------------------------
 
-	class Convolution32fDnnl : public Convolution32f
+	class Convolution16bDnnl : public Convolution16b
 	{
 		using tag = dnnl::memory::format_tag;
 		using dt = dnnl::memory::data_type;
@@ -126,13 +124,13 @@ namespace td
 		dnnl::memory _convSrcMem, _convWeightMem, _convDstMem;
 
 	public:
-		Convolution32fDnnl()
+		Convolution16bDnnl()
 			: _engine(dnnl::engine::kind::cpu, 0)
 			, _engineStream(_engine)
 		{
 		}
 
-		virtual ~Convolution32fDnnl()
+		virtual ~Convolution16bDnnl()
 		{
 
 		}
@@ -154,18 +152,18 @@ namespace td
 			_biasDims = Dms(c.dstC);
 			_dstDims = Dms(p.batch, c.dstC, c.dstH, c.dstW);
 
-			_userSrcMem = dnnl::memory({ _srcDims, dt::f32, _formatS }, _engine);
-			_userWeightMem = dnnl::memory({ _weightDims, dt::f32, _formatW }, _engine);
-			_userDstMem = dnnl::memory({ _dstDims, dt::f32, _formatS }, _engine);
+			_userSrcMem = dnnl::memory({ _srcDims, dt::bf16, _formatS }, _engine);
+			_userWeightMem = dnnl::memory({ _weightDims, dt::bf16, _formatW }, _engine);
+			_userDstMem = dnnl::memory({ _dstDims, dt::bf16, _formatS }, _engine);
 
-			_srcMd = dnnl::memory::desc(_srcDims, dt::f32, tag::any);
-			_weightMd = dnnl::memory::desc(_weightDims, dt::f32, tag::any);
-			_dstMd = dnnl::memory::desc(_dstDims, dt::f32, tag::any);
+			_srcMd = dnnl::memory::desc(_srcDims, dt::bf16, tag::any);
+			_weightMd = dnnl::memory::desc(_weightDims, dt::bf16, tag::any);
+			_dstMd = dnnl::memory::desc(_dstDims, dt::bf16, tag::any);
 
 			_userBiasMd = dnnl::memory::desc(_biasDims, dt::f32, tag::a);
 			_userBiasMem = dnnl::memory(_userBiasMd, _engine);
 
-			Copy(weight, _userWeightMem);
+			ToBf16(weight, _userWeightMem);
 			Copy(bias, _userBiasMem);
 
 			// Create primitive post-ops (ReLU).
@@ -247,22 +245,26 @@ namespace td
 
 	//----------------------------------------------------------------------------------------------------
 
-	bool Convolution32fTest(const Options& options, const ConvParam& p, Convolution32f &f1, Convolution32f &f2)
+	bool Convolution16bTest(const Options& options, const ConvParam& p, Convolution16b &f1, Convolution16b&f2)
 	{
+		const SimdTensorDataType f32 = SimdTensorData32f, b16 = SimdTensorData16b;
+
 		CPL_LOG_SS(Info, "Test " << f1.Name() << " & " << f2.Name() << " for " << p.Description() << ": ");
 
 		const SimdConvolutionParameters& c = p.conv;
-		Tensor src(c.srcT, Shp(p.batch, p.trans ? c.srcH : c.srcC, p.trans ? c.srcW : c.srcH, p.trans ? c.srcC : c.srcW));
-		Random32f(src);
 
-		Tensor weight(c.srcT, Shp(p.trans ? c.kernelY : c.dstC, p.trans ? c.kernelX : c.srcC / c.group,
-			p.trans ? c.srcC / c.group : c.kernelY, p.trans ? c.dstC : c.kernelX));
+		Shape srcShp = Shp(p.batch, p.trans ? c.srcH : c.srcC, p.trans ? c.srcW : c.srcH, p.trans ? c.srcC : c.srcW);
+		Tensor src32f(f32, srcShp), src16b(b16, srcShp);
+		Random32f(src32f);
+		SimdFloat32ToBFloat16(src32f.Data<float>(), src32f.Size(), src16b.Data<uint16_t>());
+
+		Tensor weight(f32, Shp(p.trans ? c.kernelY : c.dstC, p.trans ? c.kernelX : c.srcC / c.group, p.trans ? c.srcC / c.group : c.kernelY, p.trans ? c.dstC : c.kernelX));
 		Random32f(weight);
 
-		Tensor bias(c.srcT, Shp(c.dstC));
+		Tensor bias(f32, Shp(c.dstC));
 		Random32f(bias);
 
-		Tensor params(c.srcT, Shp(c.dstC));
+		Tensor params(f32, Shp(c.dstC));
 		Random32f(params);
 
 		if (c.activation == ::SimdConvolutionActivationHswish)
@@ -283,16 +285,16 @@ namespace td
 			params.Data<float>()[1] = 1.1f;
 		}
 
-		Tensor dst1(c.dstT, Shp(p.batch, p.trans ? c.dstH : c.dstC, p.trans ? c.dstW : c.dstH, p.trans ? c.dstC : c.dstW));
-		Tensor dst2(c.dstT, Shp(p.batch, p.trans ? c.dstH : c.dstC, p.trans ? c.dstW : c.dstH, p.trans ? c.dstC : c.dstW));
+		Shape dstShp = Shp(p.batch, p.trans ? c.dstH : c.dstC, p.trans ? c.dstW : c.dstH, p.trans ? c.dstC : c.dstW);
+		Tensor dst32f1(f32, dstShp), dst32f2(f32, dstShp), dst16b1(b16, dstShp), dst16b2(b16, dstShp);
 
 		if (!f1.Init(p, weight, bias, params))
 			return false;
 		if (!f2.Init(p, weight, bias, params))
 			return false;
 
-		f1.SetSrc(src);
-		f2.SetSrc(src);
+		f1.SetSrc(src16b);
+		f2.SetSrc(src16b);
 
 		for(double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
@@ -306,13 +308,16 @@ namespace td
 			f2.Run();
 		}
 
-		f1.GetDst(dst1);
-		f2.GetDst(dst2);
+		f1.GetDst(dst16b1);
+		f2.GetDst(dst16b2);
 
-		return Compare32f(dst1, dst2, options.compareThreshold, true, 64);
+		SimdBFloat16ToFloat32(dst16b1.Data<uint16_t>(), dst16b1.Size(), dst32f1.Data<float>());
+		SimdBFloat16ToFloat32(dst16b2.Data<uint16_t>(), dst16b2.Size(), dst32f2.Data<float>());
+
+		return Compare32f(dst32f1, dst32f2, options.compareThreshold, true, 64);
 	}
 
-	bool Convolution32fTest(const Options& options)
+	bool Convolution16bTest(const Options& options)
 	{
 		Size _0(0, 0), _1(1, 1), _2(2, 2), _3(3, 3), _4(4, 4), _5(5, 5), _6(6, 6), _7(7, 7);
 		const SimdConvolutionActivationType aId = SimdConvolutionActivationIdentity, aRe = SimdConvolutionActivationRelu,
@@ -327,7 +332,7 @@ namespace td
 
 		Cpl::PerformanceStorage::Global().Clear();
 
-		result = result && Convolution32fTest(options, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tT), Convolution32fSimd().Ref(), Convolution32fDnnl().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bDnnl().Ref());
 
 		CPL_LOG_SS(Info, std::endl << Cpl::PerformanceStorage::Global().Report());
 

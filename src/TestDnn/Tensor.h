@@ -39,6 +39,7 @@ namespace td
             : _type(SimdTensorDataUnknown)
             , _format(SimdTensorFormatUnknown)
             , _size(0)
+            , _buffer(std::make_shared<Buffer>())
         {
         }
 
@@ -46,6 +47,7 @@ namespace td
             : _type(type)
             , _shape(shape)
             , _size(0)
+            , _buffer(std::make_shared<Buffer>())
         {
             Resize();
         }
@@ -54,12 +56,22 @@ namespace td
             : _type(type)
             , _shape(shape)
             , _format(format)
+            , _buffer(std::make_shared<Buffer>())
         {
             Resize<U>(value);
         }
 
         SIMD_INLINE ~Tensor()
         {
+        }
+
+        SIMD_INLINE void Share(const Tensor& tensor)
+        {
+            _type = tensor._type;
+            _shape = tensor._shape;
+            _size = tensor._size;
+            _format = tensor._format;
+            _buffer = tensor._buffer;
         }
 
         SIMD_INLINE void Reshape(Type type, const Shape& shape, const Format& format = SimdTensorFormatUnknown)
@@ -89,8 +101,8 @@ namespace td
             _format = format;
             _size = Size(0, _shape.size());
             size_t size = _size * TypeSize(_type);
-            if (size > _buffer.size())
-                _buffer.resize(size);
+            if (size > _buffer->size())
+                _buffer->resize(size);
         }
 
         SIMD_INLINE void Clone(const Tensor& tensor)
@@ -98,7 +110,7 @@ namespace td
             _shape = tensor._shape;
             _format = tensor._format;
             _size = tensor._size;
-            _buffer = tensor._buffer;
+            *_buffer = *tensor._buffer;
         }
 
         SIMD_INLINE Type GetType()
@@ -172,28 +184,27 @@ namespace td
 
         SIMD_INLINE size_t RawSize() const
         {
-            return _buffer.size();
+            return _buffer->size();
         }
 
         SIMD_INLINE uint8_t* RawData()
         {
-            return _buffer.data();
+            return _buffer->data();
         }
 
         SIMD_INLINE const uint8_t* RawData() const
         {
-            return _buffer.data();
+            return _buffer->data();
         }
 
         template<class U> SIMD_INLINE U* Data()
         {
-            return (U*)_buffer.data();
+            return (U*)_buffer->data();
         }
 
         template<class U> SIMD_INLINE const U* Data() const
         {
-            assert(_type == GetTensorType<U>() || _buffer->data == NULL);
-            return (U*)_buffer.data();
+            return (U*)_buffer->data();
         }
 
         template<class U> SIMD_INLINE U* Data(const td::Index& index)
@@ -227,17 +238,16 @@ namespace td
         template<class U> SIMD_INLINE void Resize(U value)
         {
             _size = Size(0, _shape.size());
-            _buffer.resize(_size * TypeSize(_type));
+            _buffer->resize(_size * TypeSize(_type));
             for (size_t i = 0; i < _size; ++i)
-                ((U*)_buffer.data())[i] = value;
+                ((U*)_buffer->data())[i] = value;
         }
 
         SIMD_INLINE void Resize()
         {
-            assert(_type != SimdTensorDataUnknown);
             _size = Size(0, _shape.size());
-            _buffer.resize(_size * TypeSize(_type));
-            memset(_buffer.data(), 0, _buffer.size());
+            _buffer->resize(_size * TypeSize(_type));
+            memset(_buffer->data(), 0, _buffer->size());
         }
 
         String Info() const
@@ -259,7 +269,7 @@ namespace td
         Format _format;
         Shape _shape;
         size_t _size;
-        Buffer _buffer;
+        std::shared_ptr<Buffer> _buffer;
     };
 
     //----------------------------------------------------------------------------------------------------
