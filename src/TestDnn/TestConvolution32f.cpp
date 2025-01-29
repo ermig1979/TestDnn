@@ -86,7 +86,7 @@ namespace td
 
 		virtual bool SetSrc(const Tensor& src)
 		{
-			_src.Clone(src);
+			_src.Share(src);
 			return true;
 		}
 
@@ -327,7 +327,7 @@ namespace td
 
 		Cpl::PerformanceStorage::Global().Clear();
 
-		result = result && Convolution32fTest(options, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tT), Convolution32fSimd().Ref(), Convolution32fDnnl().Ref());
+		result = result && Convolution32fTest(options, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tT), Convolution32fDnnl().Ref(), Convolution32fSimd().Ref());
 
 		CPL_LOG_SS(Info, std::endl << Cpl::PerformanceStorage::Global().Report());
 

@@ -102,6 +102,7 @@ int main(int argc, char* argv[])
 	//::setenv("OMP_NUM_THREADS", "1", 1);
 	//::setenv("OMP_WAIT_POLICY", "PASSIVE", 1);
     //::setenv("DNNL_VERBOSE", "1", 1);
+    //OMP_NUM_THREADS=1 OMP_WAIT_POLICY=PASSIVE DNNL_VERBOSE=0 
 
     td::Groups groups;
     for (const td::Group& group : td::g_groups)
