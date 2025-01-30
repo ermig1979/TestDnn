@@ -30,6 +30,7 @@
 
 #include "Simd/SimdAllocator.hpp"
 #include "Simd/SimdPoint.hpp"
+#include "Simd/SimdLib.hpp"
 
 #include <vector>
 #include <memory.h>

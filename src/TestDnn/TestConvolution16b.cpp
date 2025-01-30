@@ -298,12 +298,14 @@ namespace td
 
 		for(double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
+			Simd::LitterCpuCache(1);
 			CPL_PERF_BEGF(p.Description() + " " + f1.Name(), p.Flop());
   			f1.Run();
 		}
 
 		for (double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
+			Simd::LitterCpuCache(1);
 			CPL_PERF_BEGF(p.Description() + " " + f2.Name(), p.Flop());
 			f2.Run();
 		}
@@ -333,7 +335,9 @@ namespace td
 		Cpl::PerformanceStorage::Global().Clear();
 
 
+#if 0
 		result = result && Convolution16bTest(options, ConvParam(1, 384, 13, 13, 1152, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+#endif
 
 		result = result && Convolution16bTest(options, ConvParam(1, 1024, 32, 32, 1024, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 
@@ -346,6 +350,8 @@ namespace td
 		result = result && Convolution16bTest(options, ConvParam(1, 64, 16, 16, 64, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 		result = result && Convolution16bTest(options, ConvParam(1, 32, 16, 16, 32, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 		result = result && Convolution16bTest(options, ConvParam(1, 32, 16, 16, 16, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+
+		result = result && Convolution16bTest(options, ConvParam(1, 256, 16, 16, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 
 		CPL_LOG_SS(Info, std::endl << Cpl::PerformanceStorage::Global().Report());
 
