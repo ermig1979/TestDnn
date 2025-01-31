@@ -35,6 +35,7 @@ namespace td
         String logFile;
         Strings include, exclude;
         float testTime, compareThreshold;
+        int litterCache;
 
         Options(int argc, char* argv[])
             : Cpl::ArgsParser(argc, argv, true)
@@ -46,6 +47,8 @@ namespace td
             exclude = GetArgs("-e", Strings(), false);
             testTime = Cpl::ToVal<float>(GetArg2("-tt", "--testTime", "0.1", false));
             compareThreshold = Cpl::ToVal<float>(GetArg2("-ct", "--compareThreshold", "0.001", false));
+            testTime = Cpl::ToVal<float>(GetArg2("-tt", "--testTime", "0.1", false));
+            litterCache = Cpl::ToVal<int>(GetArg2("-lc", "--litterCache", "0", false));
         }
 
         int PrintHelp()
@@ -59,6 +62,7 @@ namespace td
             std::cout << " -h or -?     - to print this help message." << std::endl << std::endl;
             std::cout << " -tt=0.1      - a test time in seconds." << std::endl << std::endl;
             std::cout << " -ct=0.001    - a frameworks output compare threshold." << std::endl << std::endl;
+            std::cout << " -lc=0        - Fill a big array to litter CPU cache between test runs." << std::endl << std::endl;
             return 0;
         }
     };

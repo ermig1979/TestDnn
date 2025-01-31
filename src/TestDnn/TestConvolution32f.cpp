@@ -296,12 +296,14 @@ namespace td
 
 		for(double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
+			Simd::LitterCpuCache(options.litterCache);
 			CPL_PERF_BEGF(p.Description() + " " + f1.Name(), p.Flop());
   			f1.Run();
 		}
 
 		for (double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
+			Simd::LitterCpuCache(options.litterCache);
 			CPL_PERF_BEGF(p.Description() + " " + f2.Name(), p.Flop());
 			f2.Run();
 		}
