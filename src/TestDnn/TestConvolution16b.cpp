@@ -341,7 +341,7 @@ namespace td
 
 		result = result && Convolution16bTest(options, ConvParam(1, 1024, 32, 32, 1024, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 
-#if 0
+#if 1
 		result = result && Convolution16bTest(options, ConvParam(1, 1024, 16, 16, 1024, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 		result = result && Convolution16bTest(options, ConvParam(1, 768, 16, 16, 768, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 		result = result && Convolution16bTest(options, ConvParam(1, 512, 16, 16, 512, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
