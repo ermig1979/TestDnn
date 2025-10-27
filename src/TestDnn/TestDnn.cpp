@@ -25,6 +25,11 @@
 #include "Types.h"
 #include "Options.h"
 
+#if defined(__linux__)
+#include <signal.h>
+#include <setjmp.h>
+#endif
+
 namespace td
 {
     typedef bool(*TestPtr)(const Options & options);
@@ -53,6 +58,60 @@ namespace td
 
     //-------------------------------------------------------------------------------------------------
 
+#if defined(__linux__)
+    static __thread jmp_buf s_threadData;
+#endif
+
+#if defined(__linux__)
+    static void PrintErrorMessage(int code)
+    {
+        String desc;
+        switch (code)
+        {
+        case SIGILL: desc = "Illegal instruction"; break;
+        case SIGABRT: desc = "Aborted"; break;
+        case SIGSEGV: desc = "Segment violation"; break;
+        case SIGCHLD: desc = "Child exited"; break;
+        default:
+            desc = "Unknown error(" + std::to_string(code) + ")";
+        }
+        CPL_LOG_SS(Error, "There is unhandled Linux signal: " << desc << " !");
+        longjmp(s_threadData, 1);
+    }
+#endif
+
+    static bool RunGroup(const Group& group, const Options& options)
+    {
+#if defined(__linux__)
+        std::vector<int> types;
+        std::vector<__sighandler_t> prevs;
+        for (int i = 0; i <= SIGSYS; ++i)
+        {
+            if (i == SIGCHLD)
+                continue;
+            __sighandler_t prev = signal(i, (__sighandler_t)PrintErrorMessage);
+            if (prev == SIG_IGN)
+                signal(i, prev);
+            else
+            {
+                types.push_back(i);
+                prevs.push_back(prev);
+            }
+        }
+        int rc = setjmp(s_threadData);
+        bool result = false;
+        if (rc == 0)
+            result = group.test(options);
+        for (size_t i = 0; i < prevs.size(); ++i)
+            signal(types[i], prevs[i]);
+        return result;
+#else
+        return group.test(options);
+#endif
+    }
+
+    //-------------------------------------------------------------------------------------------------
+
     bool Required(const Group& group, const Options& options)
     {
         bool required = options.include.empty();
@@ -71,7 +130,7 @@ namespace td
         {
             const Group& group = groups[t];
             CPL_LOG_SS(Info, group.name << "Test is started :");
-            bool result = group.test(options);
+            bool result = RunGroup(group, options);
             if (result)
             {
                 CPL_LOG_SS(Info, group.name << "Test is OK." << std::endl);
