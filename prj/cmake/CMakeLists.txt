@@ -28,6 +28,9 @@ set(DNNL_LIBS ${DNNL_BUILD_DIR}/libdnnl.so)
 set(DNNL_BUILD_OPTIONS 
 	-DCMAKE_BUILD_TYPE="Release"
 	-DCMAKE_LIBRARY_OUTPUT_DIRECTORY="${DNNL_BUILD_DIR}"
+	-DDNNL_BUILD_TESTS=OFF
+	-DDNNL_BUILD_EXAMPLES=OFF
+	-DDNNL_DEV_MODE=OFF
 	)
 
 file(MAKE_DIRECTORY ${DNNL_BUILD_DIR})
@@ -44,4 +47,4 @@ include_directories(${DNNL_ROOT_DIR}/include ${DNNL_BUILD_DIR}/include)
 file(GLOB_RECURSE TEST_DNN_SRC ${ROOT_DIR}/src/TestDnn/*.cpp)
 add_executable(TestDnn ${TEST_DNN_SRC})
 add_dependencies(TestDnn make_dnnl)
-target_link_libraries(TestDnn Simd ${DNNL_LIBS} -lpthread)
+target_link_libraries(TestDnn Simd ${DNNL_LIBS} -lpthread -Wl,-rpath='$ORIGIN' -Llibdnnl.so)
