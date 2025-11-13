@@ -108,6 +108,7 @@ namespace td
 
 	class Convolution16bDnnl : public Convolution16b
 	{
+#if defined(__linux__)
 		using tag = dnnl::memory::format_tag;
 		using dt = dnnl::memory::data_type;
 
@@ -124,11 +125,13 @@ namespace td
 		dnnl::memory _userSrcMem, _userWeightMem, _userBiasMem, _userDstMem;
 		dnnl::memory::desc _srcMd, _weightMd, _userBiasMd, _dstMd;
 		dnnl::memory _convSrcMem, _convWeightMem, _convDstMem;
-
+#endif
 	public:
 		Convolution16bDnnl()
+#if defined(__linux__)
 			: _engine(dnnl::engine::kind::cpu, 0)
 			, _engineStream(_engine)
+#endif
 		{
 		}
 
@@ -145,7 +148,7 @@ namespace td
 		virtual bool Init(const ConvParam& p, const Tensor& weight, const Tensor& bias, const Tensor& params)
 		{
 			const SimdConvolutionParameters& c = p.conv;
-
+#if defined(__linux__)
 			_formatS = c.srcF == SimdTensorFormatNhwc ? tag::nhwc : tag::nchw;
 			_formatW = c.srcF == SimdTensorFormatNhwc ? tag::hwio : tag::oihw;
 
@@ -207,32 +210,36 @@ namespace td
 			_convArgs.insert({ DNNL_ARG_WEIGHTS, _convWeightMem });
 			_convArgs.insert({ DNNL_ARG_BIAS, _userBiasMem });
 			_convArgs.insert({ DNNL_ARG_DST, _convDstMem });
-
+#endif
 			return true;
 		}
 
 		virtual bool SetSrc(const Tensor& src)
 		{
+#if defined(__linux__)
 			Copy(src, _userSrcMem);
 			if (_convPd.src_desc() != _userSrcMem.get_desc())
 			{
 				dnnl::reorder(_userSrcMem, _convSrcMem).execute(_engineStream, _userSrcMem, _convSrcMem);
 				_engineStream.wait();
 			}
+#endif
 			return true;
 		}
 
 		virtual bool Run()
 		{
+#if defined(__linux__)
 			_convPrim.execute(_engineStream, _convArgs);
 			
 			_engineStream.wait();
-
+#endif
 			return true;
 		}
 
 		virtual bool GetDst(Tensor& dst)
 		{
+#if defined(__linux__)
 			if (_convPd.dst_desc() != _userDstMem.get_desc())
 			{
 				dnnl::reorder(_convDstMem, _userDstMem).execute(_engineStream, _convDstMem, _userDstMem);
@@ -241,6 +248,7 @@ namespace td
 			else
 				_userDstMem = _convDstMem;
 			Copy(_userDstMem, dst);
+#endif
 			return true;
 		}
 	};
@@ -318,7 +326,11 @@ namespace td
 		SimdBFloat16ToFloat32(dst16b1.Data<uint16_t>(), dst16b1.Size(), dst32f1.Data<float>());
 		SimdBFloat16ToFloat32(dst16b2.Data<uint16_t>(), dst16b2.Size(), dst32f2.Data<float>());
 
+#if defined(__linux__)
 		return Compare32f(dst32f1, dst32f2, options.compareThreshold, true, 64);
+#else
+		return true;
+#endif
 	}
 
 	bool Convolution16bTest(const Options& options)

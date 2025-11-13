@@ -33,6 +33,7 @@
 #include <string>
 #include <vector>
 
+#if defined(__linux__)
 #include "oneapi/dnnl/dnnl.hpp"
 
 namespace td
@@ -69,3 +70,4 @@ namespace td
         SimdBFloat16ToFloat32((uint16_t*)src.get_data_handle(), dst.Size(), dst.Data<float>());
     }
 }
+#endif

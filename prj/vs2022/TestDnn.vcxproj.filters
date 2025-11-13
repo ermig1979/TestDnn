@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Cpl">
+      <UniqueIdentifier>{995c6055-06ed-4b85-bc08-47b5706d8fff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{265cdd44-fb30-44e3-a219-1400f8ab5fdf}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\TestDnn\ConvParam.h">
+      <Filter>Test</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\TestDnn\Dnnl.h">
+      <Filter>Test</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\TestDnn\Options.h">
+      <Filter>Test</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\TestDnn\Perf.h">
+      <Filter>Test</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\TestDnn\Tensor.h">
+      <Filter>Test</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\TestDnn\Types.h">
+      <Filter>Test</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Args.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Config.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Console.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Defs.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\File.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\GeometryUtils.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Html.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Log.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Param.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\ParamV2.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Performance.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Prop.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\String.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Table.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Time.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Utils.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Xml.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Yaml.h">
+      <Filter>Cpl</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\TestDnn\TestConvolution16b.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\TestDnn\TestConvolution32f.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\TestDnn\TestDnn.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

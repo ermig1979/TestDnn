@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="Prop.props" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{31D66C8A-2AC5-4564-AB95-2F63B308F96B}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>TestOnnx</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>
+		$(SolutionDir)..\..\3rd\openvino\inference-engine\include;
+		$(SolutionDir)..\..\3rd\openvino\inference-engine\src\extension;
+		$(SolutionDir)..\..\3rd\openvino\ngraph\frontend\onnx_import\include;
+		$(SolutionDir)..\..\3rd\openvino\ngraph\core\include;
+		%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\3rd\Simd\prj\vs2022\Simd.vcxproj">
+      <Project>{c809d7a3-6c52-4e36-8582-00ced929317d}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Args.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Config.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Console.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Defs.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\File.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\GeometryUtils.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Html.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Log.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Param.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\ParamV2.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Performance.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Prop.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\String.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Table.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Time.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Utils.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Xml.h" />
+    <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Yaml.h" />
+    <ClInclude Include="..\..\src\TestDnn\ConvParam.h" />
+    <ClInclude Include="..\..\src\TestDnn\Dnnl.h" />
+    <ClInclude Include="..\..\src\TestDnn\Options.h" />
+    <ClInclude Include="..\..\src\TestDnn\Perf.h" />
+    <ClInclude Include="..\..\src\TestDnn\Tensor.h" />
+    <ClInclude Include="..\..\src\TestDnn\Types.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\TestDnn\TestConvolution16b.cpp" />
+    <ClCompile Include="..\..\src\TestDnn\TestConvolution32f.cpp" />
+    <ClCompile Include="..\..\src\TestDnn\TestDnn.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
