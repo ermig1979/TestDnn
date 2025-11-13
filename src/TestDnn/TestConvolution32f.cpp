@@ -92,6 +92,7 @@ namespace td
 
 		virtual bool Run()
 		{
+			SimdSetAmxFull();
 			if(_context)
 				SimdSynetConvolution32fForward(_context, _src.Data<float>(), _buf.Data<float>(), _dst.Data<float>());
 			return true;
