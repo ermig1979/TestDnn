@@ -364,10 +364,20 @@ namespace td
 		result = result && Convolution16bTest(options, ConvParam(1, 32, 16, 16, 16, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 #endif
 
-		//result = result && Convolution16bTest(options, ConvParam(1, 256, 16, 16, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+#if 0
+		result = result && Convolution16bTest(options, ConvParam(1, 256, 16, 16, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 		result = result && Convolution16bTest(options, ConvParam(1, 112, 17, 17, 112, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+#endif
 
-		CPL_LOG_SS(Info, std::endl << Cpl::PerformanceStorage::Global().Report());
+#if 1
+		result = result && Convolution16bTest(options, ConvParam(1, 256, 32, 64, 256, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 128, 32, 32, 128, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+
+#endif
+
+		CPL_LOG_SS(Info, std::endl << ReportTable());
+
+		//CPL_LOG_SS(Info, std::endl << Cpl::PerformanceStorage::Global().Report());
 
 		if(String(SimdPerformanceStatistic()) != "")
 			CPL_LOG_SS(Info, "Simd statistics: " << SimdPerformanceStatistic() << std::endl);
@@ -390,15 +400,28 @@ namespace td
 
 		Cpl::PerformanceStorage::Global().Clear();
 
+#if 0
+		result = result && Convolution16bTest(options, ConvParam(1, 256, 48, 48, 256, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+#endif
+#if 0
+		result = result && Convolution16bTest(options, ConvParam(1, 120, 128, 128, 64, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 1020, 32, 32, 512, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 250, 64, 64, 256, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 60, 128, 128, 64, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 510, 64, 32, 512, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+#endif
 #if 1
+		result = result && Convolution16bTest(options, ConvParam(1, 32, 256, 128, 64, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 		result = result && Convolution16bTest(options, ConvParam(1, 64, 128, 128, 64, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 		result = result && Convolution16bTest(options, ConvParam(1, 128, 128, 64, 128, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 		result = result && Convolution16bTest(options, ConvParam(1, 256, 64, 64, 256, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
-		result = result && Convolution16bTest(options, ConvParam(1, 512, 32, 32, 512, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
-		result = result && Convolution16bTest(options, ConvParam(1, 1024, 64, 64, 256, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
-		result = result && Convolution16bTest(options, ConvParam(1, 2048, 16, 16, 2048, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
-		result = result && Convolution16bTest(options, ConvParam(1, 4096, 16, 16, 1024, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
-		result = result && Convolution16bTest(options, ConvParam(1, 8192, 16, 16, 512, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 512, 64, 32, 512, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+#endif
+#if 0
+		result = result && Convolution16bTest(options, ConvParam(1, 1024, 32, 32, 512, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 2048, 32, 16, 512, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 4096, 32, 16, 512, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 8192, 32, 16, 512, _1, _1, _1, _0, _0, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref());
 #endif
 
 		CPL_LOG_SS(Info, std::endl << ReportTable());
