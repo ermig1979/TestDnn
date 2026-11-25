@@ -58,12 +58,13 @@ namespace td
                 test.amx = function->second;
         }
 
-        Cpl::Table table(5, tests.size());
+        Cpl::Table table(6, tests.size());
         table.SetHeader(0, "Test", true);
         table.SetHeader(1, "Dnnl", false);
         table.SetHeader(2, "Simd", true);
         table.SetHeader(3, "Amx", true);
-        table.SetHeader(4, "ratio", true);
+        table.SetHeader(4, "S/D", true);
+        table.SetHeader(5, "A/D", true);
         size_t row = 0;
         for (TestMap::const_iterator test = tests.begin(); test != tests.end(); ++test, ++row)
         {
@@ -74,10 +75,10 @@ namespace td
                 table.SetCell(2, row, Cpl::ToStr(test->second.simd->GFlops(), 0));
             if (test->second.amx)
                 table.SetCell(3, row, Cpl::ToStr(test->second.amx->GFlops(), 0));
-            if (test->second.dnnl && test->second.amx)
-                table.SetCell(4, row, Cpl::ToStr(test->second.amx->GFlops() / test->second.dnnl->GFlops(), 2));
-            else if (test->second.dnnl && test->second.simd)
+            if (test->second.dnnl && test->second.simd)
                 table.SetCell(4, row, Cpl::ToStr(test->second.simd->GFlops() / test->second.dnnl->GFlops(), 2));
+            if (test->second.dnnl && test->second.amx)
+                table.SetCell(5, row, Cpl::ToStr(test->second.amx->GFlops() / test->second.dnnl->GFlops(), 2));
         }
         return table.GenerateText();
     }
