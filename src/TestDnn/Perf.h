@@ -32,9 +32,14 @@ namespace td
     inline String ReportTable()
     {
         typedef Cpl::PerformanceStorage::PmPtr PmPtr;
-        typedef std::pair<PmPtr, PmPtr> PmPtrPair;
+        struct Cells
+        {
+            PmPtr dnnl;
+            PmPtr simd;
+            PmPtr amx;
+        };
         typedef Cpl::PerformanceStorage::FunctionMap FuncMap;
-        typedef std::map<String, PmPtrPair> TestMap;
+        typedef std::map<String, Cells> TestMap;
 
         FuncMap merged = Cpl::PerformanceStorage::Global().Merged();
         TestMap tests;
@@ -44,28 +49,35 @@ namespace td
             size_t beg = fullName.find("[");
             size_t end = fullName.find("]");
             String name = fullName.substr(beg, end - beg + 1);
-            PmPtrPair & test = tests[name];
+            Cells& test = tests[name];
             if (fullName.find("Dnnl") != String::npos)
-                test.first = function->second;
+                test.dnnl = function->second;
             if (fullName.find("Simd") != String::npos)
-                test.second = function->second;
+                test.simd = function->second;
+            if (fullName.find("Amx") != String::npos)
+                test.amx = function->second;
         }
 
-        Cpl::Table table(4, tests.size());
+        Cpl::Table table(5, tests.size());
         table.SetHeader(0, "Test", true);
         table.SetHeader(1, "Dnnl", false);
         table.SetHeader(2, "Simd", true);
-        table.SetHeader(3, "S/D", true);
+        table.SetHeader(3, "Amx", true);
+        table.SetHeader(4, "ratio", true);
         size_t row = 0;
         for (TestMap::const_iterator test = tests.begin(); test != tests.end(); ++test, ++row)
         {
             table.SetCell(0, row, test->first);
-            if(test->second.first)
-                table.SetCell(1, row, Cpl::ToStr(test->second.first->GFlops(), 0));
-            if (test->second.second)
-                table.SetCell(2, row, Cpl::ToStr(test->second.second->GFlops(), 0));
-            if (test->second.first && test->second.second)
-                table.SetCell(3, row, Cpl::ToStr(test->second.second->GFlops() / test->second.first->GFlops(), 2));
+            if (test->second.dnnl)
+                table.SetCell(1, row, Cpl::ToStr(test->second.dnnl->GFlops(), 0));
+            if (test->second.simd)
+                table.SetCell(2, row, Cpl::ToStr(test->second.simd->GFlops(), 0));
+            if (test->second.amx)
+                table.SetCell(3, row, Cpl::ToStr(test->second.amx->GFlops(), 0));
+            if (test->second.dnnl && test->second.amx)
+                table.SetCell(4, row, Cpl::ToStr(test->second.amx->GFlops() / test->second.dnnl->GFlops(), 2));
+            else if (test->second.dnnl && test->second.simd)
+                table.SetCell(4, row, Cpl::ToStr(test->second.simd->GFlops() / test->second.dnnl->GFlops(), 2));
         }
         return table.GenerateText();
     }

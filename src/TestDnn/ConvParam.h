@@ -90,7 +90,7 @@ namespace td
             conv.dilationY = d.y;
             conv.dilationX = d.x;
             conv.strideY = s.y;
-            conv.strideX = s.y;
+            conv.strideX = s.x;
             conv.padY = b.y;
             conv.padX = b.x;
             conv.padH = e.y;

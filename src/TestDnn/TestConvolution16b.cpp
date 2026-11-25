@@ -27,6 +27,7 @@
 #include "Options.h"
 #include "Dnnl.h"
 #include "Perf.h"
+#include "ConvAmx.h"
 
 namespace td
 {
@@ -255,6 +256,64 @@ namespace td
 
 	//----------------------------------------------------------------------------------------------------
 
+	class Convolution16bAmx : public Convolution16b
+	{
+		tcv::ConvAmx _conv;
+		Tensor _dst;
+	public:
+		virtual String Name() const
+		{
+			return "Amx";
+		}
+
+		virtual bool Init(const ConvParam& param, const Tensor& weight, const Tensor& bias, const Tensor& params)
+		{
+			(void)params;
+			const SimdConvolutionParameters& c = param.conv;
+			tcv::Param a;
+			a.batch = (int)param.batch;
+			a.srcH = (int)c.srcH;
+			a.srcW = (int)c.srcW;
+			a.srcC = (int)c.srcC;
+			a.dstC = (int)c.dstC;
+			a.kernelY = (int)c.kernelY;
+			a.kernelX = (int)c.kernelX;
+			a.strideY = (int)c.strideY;
+			a.strideX = (int)c.strideX;
+			a.dilationY = (int)c.dilationY;
+			a.dilationX = (int)c.dilationX;
+			a.padY = (int)c.padY;
+			a.padX = (int)c.padX;
+			a.padH = (int)c.padH;
+			a.padW = (int)c.padW;
+			a.relu = c.activation == ::SimdConvolutionActivationRelu;
+			if (param.trans == SimdFalse || !_conv.Init(a, weight.Data<float>(), bias.Data<float>()))
+				return false;
+			_dst.Reshape(c.dstT, param.DstShape());
+			return true;
+		}
+
+		virtual bool SetSrc(const Tensor& src)
+		{
+			_conv.SetSrc(src.Data<uint16_t>());
+			return true;
+		}
+
+		virtual bool Run()
+		{
+			_conv.Run(_dst.Data<uint16_t>());
+			return true;
+		}
+
+		virtual bool GetDst(Tensor& dst)
+		{
+			dst.Clone(_dst);
+			return true;
+		}
+	};
+
+	//----------------------------------------------------------------------------------------------------
+
 	bool Convolution16bTest(const Options& options, const ConvParam& p, Convolution16b& f1, Convolution16b& f2)
 	{
 		const SimdTensorDataType f32 = SimdTensorData32f, b16 = SimdTensorData16b;
@@ -461,6 +520,27 @@ namespace td
 		if (String(SimdPerformanceStatistic()) != "")
 			CPL_LOG_SS(Info, "Simd statistics: " << SimdPerformanceStatistic() << std::endl);
 
+		return result;
+	}
+
+	bool Convolution16bAmxTest(const Options& options)
+	{
+		Size _1(1, 1), _3(3, 3);
+		const SimdConvolutionActivationType aRe = SimdConvolutionActivationRelu;
+		const SimdBool tT = SimdTrue;
+		const SimdTensorDataType b16 = SimdTensorData16b;
+
+		bool result = true;
+		Cpl::PerformanceStorage::Global().Clear();
+
+		result = result && Convolution16bTest(options, ConvParam(1, 128, 20, 20, 128, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 512, 16, 16, 512, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 256, 16, 16, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 128, 32, 32, 128, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 64, 32, 32, 64, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result = result && Convolution16bTest(options, ConvParam(1, 32, 32, 32, 32, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+
+		CPL_LOG_SS(Info, std::endl << ReportTable());
 		return result;
 	}
 }
