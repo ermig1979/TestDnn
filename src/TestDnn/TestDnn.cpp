@@ -24,6 +24,7 @@
 
 #include "Types.h"
 #include "Options.h"
+#include "Tensor.h"
 
 #if defined(__linux__)
 #include <signal.h>
@@ -163,6 +164,11 @@ int main(int argc, char* argv[])
     if (!options.logFile.empty())
         Cpl::Log::Global().AddFileWriter(options.logLevel, options.logFile);
     Cpl::Log::Global().SetFlags(Cpl::Log::BashFlags);
+
+    if (options.pinThread >= 0)
+        td::PinThread((size_t)options.pinThread);
+    if (options.warmUpTime > 0)
+        td::WarmUpCpu(options.warmUpTime);
 
 	//::setenv("OMP_NUM_THREADS", "1", 1);
 	//::setenv("OMP_WAIT_POLICY", "PASSIVE", 1);

@@ -25,6 +25,7 @@
 #pragma once 
 
 #include "Types.h"
+#include "Perf.h"
 
 namespace td
 {
@@ -333,5 +334,29 @@ namespace td
         if (printError && errorCount > 0)
             CPL_LOG_SS(Error, message.str());
         return errorCount == 0;
+    }
+
+    inline void WarmUpCpu(double warmUpTime)
+    {
+#if defined(__linux__)
+        CPL_LOG_SS(Info, "CPU warm upping is started. Initial frequency: " << SimdCpuInfo(SimdCpuInfoCurrentFrequency) / 1000 / 1000 << " MHz.");
+#else
+        CPL_LOG_SS(Info, "CPU warm upping is started.");
+#endif
+        double time = 0;
+        while (time < warmUpTime)
+        {
+            double start = Cpl::Time();
+            const size_t n = 1024;
+            const float _1 = 1.0f, _0 = 0.0f;
+            Tensor buf(SimdTensorData32f, td::Shp(n, n));
+            SimdGemm32fNN(n, n, n, &_1, buf.Data<float>(), n, buf.Data<float>(), n, &_0, buf.Data<float>(), n);
+            time += Cpl::Time() - start;
+        }
+#if defined(__linux__)
+        CPL_LOG_SS(Info, "CPU warm upping is ended. Current frequency: " << SimdCpuInfo(SimdCpuInfoCurrentFrequency) / 1000 / 1000 << " MHz." << std::endl);
+#else
+        CPL_LOG_SS(Info, "CPU warm upping is ended.");
+#endif
     }
 }

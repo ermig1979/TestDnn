@@ -34,8 +34,9 @@ namespace td
         Cpl::Log::Level logLevel;
         String logFile;
         Strings include, exclude;
-        float testTime, compareThreshold;
+        float testTime, compareThreshold, warmUpTime;
         int litterCache;
+        int pinThread;
 
         Options(int argc, char* argv[])
             : Cpl::ArgsParser(argc, argv, true)
@@ -49,6 +50,8 @@ namespace td
             compareThreshold = Cpl::ToVal<float>(GetArg2("-ct", "--compareThreshold", "0.001", false));
             testTime = Cpl::ToVal<float>(GetArg2("-tt", "--testTime", "0.1", false));
             litterCache = Cpl::ToVal<int>(GetArg2("-lc", "--litterCache", "0", false));
+            pinThread = Cpl::ToVal<int>(GetArg2("-pt", "--pinThread", "-1", false));
+            warmUpTime = Cpl::ToVal<float>(GetArg2("-wu", "--warmUp", "0", false));
         }
 
         int PrintHelp()
@@ -63,6 +66,8 @@ namespace td
             std::cout << " -tt=0.1      - a test time in seconds." << std::endl << std::endl;
             std::cout << " -ct=0.001    - a frameworks output compare threshold." << std::endl << std::endl;
             std::cout << " -lc=0        - Fill a big array to litter CPU cache between test runs." << std::endl << std::endl;
+            std::cout << " -pt=-1       - pin the main thread to this CPU core. -1 disables pinning." << std::endl << std::endl;
+            std::cout << " -wu=0        - CPU warm-up time in seconds." << std::endl << std::endl;
             return 0;
         }
     };

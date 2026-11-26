@@ -33,6 +33,7 @@
 #include "Simd/SimdLib.hpp"
 
 #include <vector>
+#include <cstring>
 #include <memory.h>
 
 namespace td
@@ -126,5 +127,51 @@ namespace td
     CPL_INLINE float Random()
     {
         return float(Rand() & INT16_MAX) / float(INT16_MAX);
+    }
+
+    //--------------------------------------------------------------------------------------------------
+
+    static bool PinThread(size_t core)
+    {
+#if defined(__linux__)
+        pthread_t this_thread = pthread_self();
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(core, &cpuset);
+        if (pthread_setaffinity_np(this_thread, sizeof(cpu_set_t), &cpuset))
+        {
+            CPL_LOG_SS(Warning, "Can't set affinity " << core << " to " << this_thread << " thread : " << std::strerror(errno) << " !");
+            return false;
+        }
+#if 0
+        int policy = 0;
+        sched_param params;
+        if (pthread_getschedparam(this_thread, &policy, &params))
+        {
+            CPL_LOG_SS(Warning, "Can't get thread parameters of " << this_thread << " thread : " << std::strerror(errno) << " !");
+            return false;
+        }
+
+        CPL_LOG_SS(Info, "Core : " << core << " Policy: " << policy << " Priority: " << params.sched_priority << " max: " << sched_get_priority_max(policy) << " min: " << sched_get_priority_min(policy));
+
+        if (pthread_setschedparam(this_thread, policy, &params))
+        {
+            CPL_LOG_SS(Warning, "Can't set thread parameters of " << this_thread << " thread : " << std::strerror(errno) << " !");
+            return false;
+        }
+
+        CPL_LOG_SS(Info, "Core : " << core << " Policy: " << policy << " Priority: " << params.sched_priority);
+#endif
+#endif
+        return true;
+    }
+
+    static String CoreFreqInfo()
+    {
+        std::stringstream info;
+#if defined(__linux__)
+        info << " " << sched_getcpu() << ": " << Cpl::ToStr(double(SimdCpuInfo(SimdCpuInfoCurrentFrequency)) / 1000000000.0, 1) << " GHz.";
+#endif
+        return info.str();
     }
 }
