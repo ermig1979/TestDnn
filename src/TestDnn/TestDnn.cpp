@@ -53,11 +53,14 @@ namespace td
     bool name##AddToList(){ g_groups.push_back(Group(#name, name##Test)); return true; } \
     bool name##AtList = name##AddToList();
 
+#if defined(TD_ONEDNN)
     TEST_ADD(Convolution32f);
     TEST_ADD(Convolution16bDebug);
     TEST_ADD(Convolution16b1x1);
     TEST_ADD(Convolution16b3x3);
     TEST_ADD(Convolution16bAmx);
+#endif
+    TEST_ADD(Convolution16bSimdAmx);
 
     //-------------------------------------------------------------------------------------------------
 

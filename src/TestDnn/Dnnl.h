@@ -33,7 +33,7 @@
 #include <string>
 #include <vector>
 
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 #include "oneapi/dnnl/dnnl.hpp"
 
 namespace td

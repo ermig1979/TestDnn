@@ -109,7 +109,7 @@ namespace td
 
 	class Convolution16bDnnl : public Convolution16b
 	{
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 		using tag = dnnl::memory::format_tag;
 		using dt = dnnl::memory::data_type;
 
@@ -129,7 +129,7 @@ namespace td
 #endif
 	public:
 		Convolution16bDnnl()
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 			: _engine(dnnl::engine::kind::cpu, 0)
 			, _engineStream(_engine)
 #endif
@@ -149,7 +149,7 @@ namespace td
 		virtual bool Init(const ConvParam& p, const Tensor& weight, const Tensor& bias, const Tensor& params)
 		{
 			const SimdConvolutionParameters& c = p.conv;
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 			_formatS = c.srcF == SimdTensorFormatNhwc ? tag::nhwc : tag::nchw;
 			_formatW = c.srcF == SimdTensorFormatNhwc ? tag::hwio : tag::oihw;
 
@@ -217,7 +217,7 @@ namespace td
 
 		virtual bool SetSrc(const Tensor& src)
 		{
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 			Copy(src, _userSrcMem);
 			if (_convPd.src_desc() != _userSrcMem.get_desc())
 			{
@@ -230,7 +230,7 @@ namespace td
 
 		virtual bool Run()
 		{
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 			_convPrim.execute(_engineStream, _convArgs);
 
 			_engineStream.wait();
@@ -240,7 +240,7 @@ namespace td
 
 		virtual bool GetDst(Tensor& dst)
 		{
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 			if (_convPd.dst_desc() != _userDstMem.get_desc())
 			{
 				dnnl::reorder(_convDstMem, _userDstMem).execute(_engineStream, _convDstMem, _userDstMem);
@@ -634,6 +634,30 @@ namespace td
 		result &= Convolution16bTest(options, ConvParam(1, 128, 32, 32, 128, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 64, 32, 32, 64, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 32, 32, 32, 32, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 256, 64, 64, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
+
+		CPL_LOG_SS(Info, std::endl << ReportTable());
+		return result;
+	}
+
+	bool Convolution16bSimdAmxTest(const Options& options)
+	{
+		Size _1(1, 1), _3(3, 3);
+		const SimdConvolutionActivationType aRe = SimdConvolutionActivationRelu;
+		const SimdBool tT = SimdTrue;
+		const SimdTensorDataType b16 = SimdTensorData16b;
+
+		bool result = true;
+		Cpl::PerformanceStorage::Global().Clear();
+
+		result &= Convolution16bTest(options, ConvParam(1, 512, 8, 24, 512, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 128, 20, 20, 128, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 512, 16, 16, 512, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 256, 16, 16, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 128, 32, 32, 128, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 64, 32, 32, 64, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 32, 32, 32, 32, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 256, 64, 64, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 
 		CPL_LOG_SS(Info, std::endl << ReportTable());
 		return result;

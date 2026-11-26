@@ -109,7 +109,7 @@ namespace td
 
 	class Convolution32fDnnl : public Convolution32f
 	{
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 		using tag = dnnl::memory::format_tag;
 		using dt = dnnl::memory::data_type;
 
@@ -130,7 +130,7 @@ namespace td
 
 	public:
 		Convolution32fDnnl()
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 			: _engine(dnnl::engine::kind::cpu, 0)
 			, _engineStream(_engine)
 #endif
@@ -150,7 +150,7 @@ namespace td
 		virtual bool Init(const ConvParam& p, const Tensor& weight, const Tensor& bias, const Tensor& params)
 		{
 			const SimdConvolutionParameters& c = p.conv;
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 			_formatS = c.srcF == SimdTensorFormatNhwc ? tag::nhwc : tag::nchw;
 			_formatW = c.srcF == SimdTensorFormatNhwc ? tag::hwio : tag::oihw;
 
@@ -218,7 +218,7 @@ namespace td
 
 		virtual bool SetSrc(const Tensor& src)
 		{
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 			Copy(src, _userSrcMem);
 			if (_convPd.src_desc() != _userSrcMem.get_desc())
 			{
@@ -231,7 +231,7 @@ namespace td
 
 		virtual bool Run()
 		{
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 			_convPrim.execute(_engineStream, _convArgs);
 			
 			_engineStream.wait();
@@ -241,7 +241,7 @@ namespace td
 
 		virtual bool GetDst(Tensor& dst)
 		{
-#if defined(__linux__)
+#if defined(TD_ONEDNN)
 			if (_convPd.dst_desc() != _userDstMem.get_desc())
 			{
 				dnnl::reorder(_convDstMem, _userDstMem).execute(_engineStream, _convDstMem, _userDstMem);
