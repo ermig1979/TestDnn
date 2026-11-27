@@ -36,6 +36,11 @@
 #include <cstring>
 #include <memory.h>
 
+#if defined(__linux__)
+#include <unistd.h>
+#include <sys/syscall.h>
+#endif
+
 namespace td
 {
     typedef Cpl::String String;
@@ -170,8 +175,59 @@ namespace td
     {
         std::stringstream info;
 #if defined(__linux__)
-        info << " " << sched_getcpu() << ": " << Cpl::ToStr(double(SimdCpuInfo(SimdCpuInfoCurrentFrequency)) / 1000000000.0, 1) << " GHz.";
+        info << " " << sched_getcpu();
+#if defined(TD_SIMD)
+        info << ": " << Cpl::ToStr(double(SimdCpuInfo(SimdCpuInfoCurrentFrequency)) / 1000000000.0, 1) << " GHz.";
+#endif
 #endif
         return info.str();
+    }
+
+    inline void Float32ToBFloat16(const float* src, size_t size, uint16_t* dst)
+    {
+#if defined(TD_SIMD)
+        ::SimdFloat32ToBFloat16(src, size, dst);
+#else
+        for (size_t i = 0; i < size; ++i)
+        {
+            uint32_t bits;
+            std::memcpy(&bits, src + i, sizeof(bits));
+            uint32_t lsb = (bits >> 16) & 1u;
+            bits += 0x7fffu + lsb;
+            dst[i] = (uint16_t)(bits >> 16);
+        }
+#endif
+    }
+
+    inline void BFloat16ToFloat32(const uint16_t* src, size_t size, float* dst)
+    {
+#if defined(TD_SIMD)
+        ::SimdBFloat16ToFloat32(src, size, dst);
+#else
+        for (size_t i = 0; i < size; ++i)
+        {
+            uint32_t bits = (uint32_t)src[i] << 16;
+            std::memcpy(dst + i, &bits, sizeof(bits));
+        }
+#endif
+    }
+
+    inline void EnableAmx()
+    {
+#if defined(__linux__)
+        const long ARCH_REQ_XCOMP_PERM = 0x1023;
+        const long XFEATURE_XTILEDATA = 18;
+        if (syscall(SYS_arch_prctl, ARCH_REQ_XCOMP_PERM, XFEATURE_XTILEDATA) != 0)
+            CPL_LOG_SS(Error, "AMX tile data permission was not granted.");
+#endif
+    }
+
+    inline void LitterCpuCache(size_t k)
+    {
+#if defined(TD_SIMD)
+        Simd::LitterCpuCache(k);
+#else
+        (void)k;
+#endif
     }
 }

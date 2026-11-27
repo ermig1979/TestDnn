@@ -45,6 +45,7 @@ namespace td
 
 	//----------------------------------------------------------------------------------------------------
 
+#if defined(TD_SIMD)
 	class Convolution16bSimd : public Convolution16b
 	{
 		void* _context;
@@ -104,6 +105,39 @@ namespace td
 			return true;
 		}
 	};
+#else
+	class Convolution16bSimd : public Convolution16b
+	{
+	public:
+		virtual String Name() const
+		{
+			return "Simd";
+		}
+
+		virtual bool Init(const ConvParam& param, const Tensor& weight, const Tensor& bias, const Tensor& params)
+		{
+			(void)param; (void)weight; (void)bias; (void)params;
+			return false;
+		}
+
+		virtual bool SetSrc(const Tensor& src)
+		{
+			(void)src;
+			return false;
+		}
+
+		virtual bool Run()
+		{
+			return false;
+		}
+
+		virtual bool GetDst(Tensor& dst)
+		{
+			(void)dst;
+			return false;
+		}
+	};
+#endif
 
 	//----------------------------------------------------------------------------------------------------
 
@@ -325,7 +359,7 @@ namespace td
 		Shape srcShp = Shp(p.batch, p.trans ? c.srcH : c.srcC, p.trans ? c.srcW : c.srcH, p.trans ? c.srcC : c.srcW);
 		Tensor src32f(f32, srcShp), src16b(b16, srcShp);
 		Random32f(src32f);
-		SimdFloat32ToBFloat16(src32f.Data<float>(), src32f.Size(), src16b.Data<uint16_t>());
+		Float32ToBFloat16(src32f.Data<float>(), src32f.Size(), src16b.Data<uint16_t>());
 
 		Tensor weight(f32, Shp(p.trans ? c.kernelY : c.dstC, p.trans ? c.kernelX : c.srcC / c.group, p.trans ? c.srcC / c.group : c.kernelY, p.trans ? c.dstC : c.kernelX));
 		Random32f(weight);
@@ -367,14 +401,14 @@ namespace td
 
 		for (double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
-			Simd::LitterCpuCache(options.litterCache);
+			LitterCpuCache(options.litterCache);
 			CPL_PERF_BEGF(p.Description() + " " + f1.Name(), p.Flop());
 			f1.Run();
 		}
 
 		for (double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
-			Simd::LitterCpuCache(options.litterCache);
+			LitterCpuCache(options.litterCache);
 			CPL_PERF_BEGF(p.Description() + " " + f2.Name(), p.Flop());
 			f2.Run();
 		}
@@ -382,8 +416,8 @@ namespace td
 		f1.GetDst(dst16b1);
 		f2.GetDst(dst16b2);
 
-		SimdBFloat16ToFloat32(dst16b1.Data<uint16_t>(), dst16b1.Size(), dst32f1.Data<float>());
-		SimdBFloat16ToFloat32(dst16b2.Data<uint16_t>(), dst16b2.Size(), dst32f2.Data<float>());
+		BFloat16ToFloat32(dst16b1.Data<uint16_t>(), dst16b1.Size(), dst32f1.Data<float>());
+		BFloat16ToFloat32(dst16b2.Data<uint16_t>(), dst16b2.Size(), dst32f2.Data<float>());
 
 #if defined(__linux__)
 		return Compare32f(dst32f1, dst32f2, options.compareThreshold, true, 64);
@@ -403,7 +437,7 @@ namespace td
 		Shape srcShp = Shp(p.batch, p.trans ? c.srcH : c.srcC, p.trans ? c.srcW : c.srcH, p.trans ? c.srcC : c.srcW);
 		Tensor src32f(f32, srcShp), src16b(b16, srcShp);
 		Random32f(src32f);
-		SimdFloat32ToBFloat16(src32f.Data<float>(), src32f.Size(), src16b.Data<uint16_t>());
+		Float32ToBFloat16(src32f.Data<float>(), src32f.Size(), src16b.Data<uint16_t>());
 
 		Tensor weight(f32, Shp(p.trans ? c.kernelY : c.dstC, p.trans ? c.kernelX : c.srcC / c.group, p.trans ? c.srcC / c.group : c.kernelY, p.trans ? c.dstC : c.kernelX));
 		Random32f(weight);
@@ -449,21 +483,21 @@ namespace td
 
 		for (double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
-			Simd::LitterCpuCache(options.litterCache);
+			LitterCpuCache(options.litterCache);
 			CPL_PERF_BEGF(p.Description() + " " + f1.Name(), p.Flop());
 			f1.Run();
 		}
 
 		for (double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
-			Simd::LitterCpuCache(options.litterCache);
+			LitterCpuCache(options.litterCache);
 			CPL_PERF_BEGF(p.Description() + " " + f2.Name(), p.Flop());
 			f2.Run();
 		}
 
 		for (double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
-			Simd::LitterCpuCache(options.litterCache);
+			LitterCpuCache(options.litterCache);
 			CPL_PERF_BEGF(p.Description() + " " + f3.Name(), p.Flop());
 			f3.Run();
 		}
@@ -472,9 +506,9 @@ namespace td
 		f2.GetDst(dst16b2);
 		f3.GetDst(dst16b3);
 
-		SimdBFloat16ToFloat32(dst16b1.Data<uint16_t>(), dst16b1.Size(), dst32f1.Data<float>());
-		SimdBFloat16ToFloat32(dst16b2.Data<uint16_t>(), dst16b2.Size(), dst32f2.Data<float>());
-		SimdBFloat16ToFloat32(dst16b3.Data<uint16_t>(), dst16b3.Size(), dst32f3.Data<float>());
+		BFloat16ToFloat32(dst16b1.Data<uint16_t>(), dst16b1.Size(), dst32f1.Data<float>());
+		BFloat16ToFloat32(dst16b2.Data<uint16_t>(), dst16b2.Size(), dst32f2.Data<float>());
+		BFloat16ToFloat32(dst16b3.Data<uint16_t>(), dst16b3.Size(), dst32f3.Data<float>());
 
 #if defined(__linux__)
 		bool same2 = Compare32f(dst32f1, dst32f2, options.compareThreshold, true, 64, f2.Name());
@@ -531,8 +565,10 @@ namespace td
 
 		//CPL_LOG_SS(Info, std::endl << Cpl::PerformanceStorage::Global().Report());
 
+#if defined(TD_SIMD)
 		if (String(SimdPerformanceStatistic()) != "")
 			CPL_LOG_SS(Info, "Simd statistics: " << SimdPerformanceStatistic() << std::endl);
+#endif
 
 		return result;
 	}
@@ -578,8 +614,10 @@ namespace td
 
 		CPL_LOG_SS(Info, std::endl << ReportTable());
 
+#if defined(TD_SIMD)
 		if (String(SimdPerformanceStatistic()) != "")
 			CPL_LOG_SS(Info, "Simd statistics: " << SimdPerformanceStatistic() << std::endl);
+#endif
 
 		return result;
 	}
@@ -611,8 +649,10 @@ namespace td
 
 		CPL_LOG_SS(Info, std::endl << ReportTable());
 
+#if defined(TD_SIMD)
 		if (String(SimdPerformanceStatistic()) != "")
 			CPL_LOG_SS(Info, "Simd statistics: " << SimdPerformanceStatistic() << std::endl);
+#endif
 
 		return result;
 	}
@@ -627,6 +667,7 @@ namespace td
 		bool result = true;
 		Cpl::PerformanceStorage::Global().Clear();
 
+#if defined(TD_SIMD)
 		result &= Convolution16bTest(options, ConvParam(1, 512, 8, 24, 512, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 128, 20, 20, 128, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 512, 16, 16, 512, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
@@ -635,6 +676,16 @@ namespace td
 		result &= Convolution16bTest(options, ConvParam(1, 64, 32, 32, 64, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 32, 32, 32, 32, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 256, 64, 64, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
+#else
+		result &= Convolution16bTest(options, ConvParam(1, 512, 8, 24, 512, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 128, 20, 20, 128, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 512, 16, 16, 512, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 256, 16, 16, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 128, 32, 32, 128, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 64, 32, 32, 64, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 32, 32, 32, 32, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+		result &= Convolution16bTest(options, ConvParam(1, 256, 64, 64, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bDnnl().Ref(), Convolution16bAmx().Ref());
+#endif
 
 		CPL_LOG_SS(Info, std::endl << ReportTable());
 		return result;
@@ -650,15 +701,22 @@ namespace td
 		bool result = true;
 		Cpl::PerformanceStorage::Global().Clear();
 
+#if	defined(TD_SIMD)
+		result &= Convolution16bTest(options, ConvParam(1, 256, 16, 16, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bAmx().Ref(), Convolution16bAmx().Ref());
+#else
+		result &= Convolution16bTest(options, ConvParam(1, 256, 16, 16, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
+		//result &= Convolution16bTest(options, ConvParam(1, 256, 16, 16, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bSimd().Ref());
+#endif
+
+#if 0
 		result &= Convolution16bTest(options, ConvParam(1, 512, 8, 24, 512, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 128, 20, 20, 128, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 512, 16, 16, 512, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
-		result &= Convolution16bTest(options, ConvParam(1, 256, 16, 16, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 128, 32, 32, 128, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 64, 32, 32, 64, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 32, 32, 32, 32, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
 		result &= Convolution16bTest(options, ConvParam(1, 256, 64, 64, 256, _3, _1, _1, _1, _1, 1, aRe, tT, b16, b16), Convolution16bSimd().Ref(), Convolution16bAmx().Ref());
-
+#endif
 		CPL_LOG_SS(Info, std::endl << ReportTable());
 		return result;
 	}

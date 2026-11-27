@@ -7,6 +7,9 @@
     <Filter Include="Test">
       <UniqueIdentifier>{265cdd44-fb30-44e3-a219-1400f8ab5fdf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Conv">
+      <UniqueIdentifier>{202ffd63-2ccd-439d-9ff9-c20854181538}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\TestDnn\ConvParam.h">
@@ -81,6 +84,9 @@
     <ClInclude Include="..\..\3rd\Cpl\src\Cpl\Yaml.h">
       <Filter>Cpl</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\TestConv\ConvAmx.h">
+      <Filter>Conv</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\TestDnn\TestConvolution16b.cpp">
@@ -91,6 +97,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\TestDnn\TestDnn.cpp">
       <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\TestConv\ConvAmx.cpp">
+      <Filter>Conv</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

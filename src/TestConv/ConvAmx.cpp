@@ -11,7 +11,7 @@ namespace tcv
 {
     namespace
     {
-        struct TileConf
+        struct alignas(64) TileConf
         {
             uint8_t paletteId;
             uint8_t startRow;

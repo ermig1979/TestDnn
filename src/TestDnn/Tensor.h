@@ -34,7 +34,11 @@ namespace td
     public:
         typedef SimdTensorDataType Type;
         typedef SimdTensorFormatType Format;
+#if defined(TD_SIMD)
         typedef std::vector<uint8_t, Simd::Allocator<uint8_t>> Buffer;
+#else
+        typedef std::vector<uint8_t> Buffer;
+#endif
 
         SIMD_INLINE Tensor()
             : _type(SimdTensorDataUnknown)
@@ -338,7 +342,7 @@ namespace td
 
     inline void WarmUpCpu(double warmUpTime)
     {
-#if defined(__linux__)
+#if defined(__linux__) && defined(TD_SIMD)
         CPL_LOG_SS(Info, "CPU warm upping is started. Initial frequency: " << SimdCpuInfo(SimdCpuInfoCurrentFrequency) / 1000 / 1000 << " MHz.");
 #else
         CPL_LOG_SS(Info, "CPU warm upping is started.");
@@ -350,10 +354,19 @@ namespace td
             const size_t n = 1024;
             const float _1 = 1.0f, _0 = 0.0f;
             Tensor buf(SimdTensorData32f, td::Shp(n, n));
+#if defined(TD_SIMD)
             SimdGemm32fNN(n, n, n, &_1, buf.Data<float>(), n, buf.Data<float>(), n, &_0, buf.Data<float>(), n);
+#else
+            (void)_1;
+            (void)_0;
+            float* data = buf.Data<float>();
+            for (size_t i = 0; i < n; ++i)
+                for (size_t j = 0; j < n; ++j)
+                    data[i * n + j] = data[j * n + i] + 1.0f;
+#endif
             time += Cpl::Time() - start;
         }
-#if defined(__linux__)
+#if defined(__linux__) && defined(TD_SIMD)
         CPL_LOG_SS(Info, "CPU warm upping is ended. Current frequency: " << SimdCpuInfo(SimdCpuInfoCurrentFrequency) / 1000 / 1000 << " MHz." << std::endl);
 #else
         CPL_LOG_SS(Info, "CPU warm upping is ended.");

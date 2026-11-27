@@ -43,6 +43,7 @@ namespace td
 
 	//----------------------------------------------------------------------------------------------------
 
+#if defined(TD_SIMD)
 	class Convolution32fSimd : public Convolution32f
 	{
 		void* _context;
@@ -104,6 +105,39 @@ namespace td
 			return true;
 		}
 	};
+#else
+	class Convolution32fSimd : public Convolution32f
+	{
+	public:
+		virtual String Name() const
+		{
+			return "Simd";
+		}
+
+		virtual bool Init(const ConvParam& param, const Tensor& weight, const Tensor& bias, const Tensor& params)
+		{
+			(void)param; (void)weight; (void)bias; (void)params;
+			return false;
+		}
+
+		virtual bool SetSrc(const Tensor& src)
+		{
+			(void)src;
+			return false;
+		}
+
+		virtual bool Run()
+		{
+			return false;
+		}
+
+		virtual bool GetDst(Tensor& dst)
+		{
+			(void)dst;
+			return false;
+		}
+	};
+#endif
 
 	//----------------------------------------------------------------------------------------------------
 
@@ -306,14 +340,14 @@ namespace td
 
 		for(double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
-			Simd::LitterCpuCache(options.litterCache);
+			LitterCpuCache(options.litterCache);
 			CPL_PERF_BEGF(p.Description() + " " + f1.Name(), p.Flop());
   			f1.Run();
 		}
 
 		for (double start = Cpl::Time(), current = start; current <= start + options.testTime; current = Cpl::Time())
 		{
-			Simd::LitterCpuCache(options.litterCache);
+			LitterCpuCache(options.litterCache);
 			CPL_PERF_BEGF(p.Description() + " " + f2.Name(), p.Flop());
 			f2.Run();
 		}
